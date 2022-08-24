@@ -11,7 +11,7 @@ contract ERC20BaseTest is TestUtils {
         assertTrue(true);
     }
 
-    function test_failure() external {
+    function testFail_failure() external {
         assertTrue(false);
     }
 
