@@ -8,7 +8,7 @@ import { IERC20Like, IGlobalsLike, IMapleLoanLike, IPoolManagerLike } from "../i
 contract AccountingChecker {
 
     uint256 constant PRECISION  = 1e30;
-    uint256 constant SCALED_ONE = 1e18;
+    uint256 constant SCALED_ONE = 1e6;
 
     address public globals;
 
