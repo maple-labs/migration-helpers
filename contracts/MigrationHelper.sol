@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.7;
 
-import {
-    IDebtLockerLike,
-    IMapleLoanLike
-} from "./interfaces/Interfaces.sol";
+import { IDebtLockerLike, IMapleLoanLike } from "./interfaces/Interfaces.sol";
 
 contract MigrationHelper {
 

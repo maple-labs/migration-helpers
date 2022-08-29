@@ -4,11 +4,7 @@
 
 ## Setup
 
-TODO
-
 ## Usage
-
-TODO
 
 ## About Maple
 Maple is a decentralized corporate credit market. Maple provides capital to institutional borrowers through globally accessible fixed-income yield opportunities.
