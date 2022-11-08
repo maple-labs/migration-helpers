@@ -1,0 +1,11 @@
+name: migration-helpers
+version: v1.0.0-rc.1
+source: contracts
+packages:
+  - path: contracts/MigrationHelper.sol
+    contractName: MigrationHelper
+  - path: contracts/DeactivationOracle.sol
+    contractName: DeactivationOracle
+  - path: contracts/checkers/AccountingChecker.sol
+    contractName: AccountingChecker
+customDescription: Maple Migration Helpers Artifacts and ABIs
