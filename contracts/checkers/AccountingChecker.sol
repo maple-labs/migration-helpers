@@ -45,6 +45,12 @@ contract AccountingChecker {
         uint256 delegateManagementFeeRate_ = IPoolManagerLike(poolManager_).delegateManagementFeeRate();
         uint256 managementFeeRate_         = platformManagementFeeRate_ + delegateManagementFeeRate_;
 
+        // NOTE: If combined fee is greater than 100%, then cap delegate fee and clamp management fee.
+        if (managementFeeRate_ > HUNDRED_PERCENT) {
+            delegateManagementFeeRate_ = HUNDRED_PERCENT - platformManagementFeeRate_;
+            managementFeeRate_         = HUNDRED_PERCENT;
+        }
+
         IMapleLoanLike loan_ = IMapleLoanLike(loanAddress_);
 
         uint256 version_ = _getVersion(loanAddress_);
