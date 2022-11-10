@@ -3,6 +3,10 @@ pragma solidity 0.8.7;
 
 interface IDebtLockerLike {
 
+    function acceptLender() external;
+
+    function loan() external view returns (address loan_);
+
     function pool() external view returns (address pool_);
 
     function poolDelegate() external view returns (address poolDelegate_);
@@ -16,7 +20,7 @@ interface IERC20Like {
 
     function balanceOf(address account_) external view returns(uint256 balance_);
 
-    function decimals() external view returns (uint256 decimals_);
+    function decimals() external view returns (uint8 decimals_);
 
     function transfer(address to_, uint256 amount) external returns (bool success_);
 
@@ -38,6 +42,8 @@ interface ILoanManagerLike {
 
     function getAccruedInterest() external view returns (uint256);
 
+    function issuanceRate() external view returns (uint256);
+
     function domainStart() external view returns (uint256);
 
     function domainEnd() external view returns (uint256);
@@ -49,6 +55,8 @@ interface IMapleGlobalsLike {
     function isFactory(bytes32 factoryType_, address factory_) external view returns (bool valid_);
 
     function poolDelegates(address poolDelegate_) external view returns (address ownedPoolManager_, bool isPoolDelegate_);
+
+    function delegateManagementFeeRate(address poolManager_) external view returns (uint256 delegateManagementFeeRate_);
 
     function platformManagementFeeRate(address poolManager_) external view returns (uint256 platformManagementFeeRate_);
 
@@ -85,6 +93,8 @@ interface IMapleLoanLike is IMapleProxiedLike {
     function getNextPaymentBreakdown() external view returns (uint256 principal_, uint256 interest_, uint256 delegateFee_, uint256 platformFee_);
 
     function implementation() external view returns (address implementation_);
+
+    function interestRate() external view returns (uint256 interestRate_);
 
     function lender() external view returns (address lender_);
 
@@ -143,11 +153,14 @@ interface IPoolV1Like {
     function totalSupply() external view returns (uint256 totalSupply_);
 
     function withdrawableFundsOf(address account_) external view returns (uint256 withdrawableFunds_);
+
 }
 
 interface ITransitionLoanManagerLike {
 
     function add(address loan_) external;
+
+    function setOwnershipTo(address[] calldata loans_, address[] calldata newLenders_) external;
 
     function takeOwnership(address[] calldata loans_) external;
 

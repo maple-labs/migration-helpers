@@ -18,7 +18,7 @@ import {
     MockProxyFactory
 } from "./Mocks.sol";
 
-contract TransferLoansTests is TestUtils {
+contract MigrationHelperTestBase is TestUtils {
 
     address migrationHelperImplementation;
 
@@ -82,9 +82,15 @@ contract TransferLoansTests is TestUtils {
 
         vm.prank(owner);
         migrationHelper.setGlobals(address(globals));
-    }
 
-    function _callTransferLoans() internal {
+        loan1.__setNextPaymentDueDate(block.timestamp + 30 days);
+        loan2.__setNextPaymentDueDate(block.timestamp + 30 days);
+    }
+}
+
+contract SetPendingLendersTests is MigrationHelperTestBase {
+
+    function _callSetPendingLenders() internal {
         address[] memory loans = new address[](2);
         loans[0] = address(loan1);
         loans[1] = address(loan2);
@@ -101,140 +107,140 @@ contract TransferLoansTests is TestUtils {
         vm.expectRevert("MH:ONLY_ADMIN");
         migrationHelper.setPendingLenders(address(poolV1), address(poolV2Manager), address(loanFactory), loans);
 
-        _callTransferLoans();
+        _callSetPendingLenders();
     }
 
     function test_setPendingLenders_protocolPaused() external {
         globals.__setProtocolPaused(true);
 
         vm.expectRevert("MH:SPL:PROTOCOL_PAUSED");
-        _callTransferLoans();
+        _callSetPendingLenders();
 
         globals.__setProtocolPaused(false);
 
-        _callTransferLoans();
+        _callSetPendingLenders();
     }
 
     function test_setPendingLenders_invalidPoolManager() external {
         poolManagerFactory.__setIsInstance(address(poolV2Manager), false);
 
         vm.expectRevert("MH:SPL:INVALID_PM");
-        _callTransferLoans();
+        _callSetPendingLenders();
 
         poolManagerFactory.__setIsInstance(address(poolV2Manager), true);
 
-        _callTransferLoans();
+        _callSetPendingLenders();
     }
 
     function test_setPendingLenders_invalidPMFactory() external {
         globals.__setValidFactory("POOL_MANAGER", address(poolManagerFactory), false);
 
         vm.expectRevert("MH:SPL:INVALID_PM_FACTORY");
-        _callTransferLoans();
+        _callSetPendingLenders();
 
         globals.__setValidFactory("POOL_MANAGER", address(poolManagerFactory), true);
 
-        _callTransferLoans();
+        _callSetPendingLenders();
     }
 
     function test_setPendingLenders_invalidLoanManager() external {
         loanManagerFactory.__setIsInstance(address(loanManager), false);
 
         vm.expectRevert("MH:SPL:INVALID_LM");
-        _callTransferLoans();
+        _callSetPendingLenders();
 
         loanManagerFactory.__setIsInstance(address(loanManager), true);
 
-        _callTransferLoans();
+        _callSetPendingLenders();
     }
 
     function test_setPendingLenders_invalidLMFactory() external {
         globals.__setValidFactory("LOAN_MANAGER", address(loanManagerFactory), false);
 
         vm.expectRevert("MH:SPL:INVALID_LM_FACTORY");
-        _callTransferLoans();
+        _callSetPendingLenders();
 
         globals.__setValidFactory("LOAN_MANAGER", address(loanManagerFactory), true);
 
-        _callTransferLoans();
+        _callSetPendingLenders();
     }
 
     function test_setPendingLenders_notActive() external {
         poolV2Manager.__setActive(false);
 
         vm.expectRevert("MH:SPL:PM_NOT_ACTIVE");
-        _callTransferLoans();
+        _callSetPendingLenders();
 
         poolV2Manager.__setActive(true);
 
-        _callTransferLoans();
+        _callSetPendingLenders();
     }
 
     function test_setPendingLenders_notOwnedPM() external {
         globals.__setOwnedPoolManager(address(poolDelegate), address(1));
 
         vm.expectRevert("MH:SPL:NOT_OWNED_PM");
-        _callTransferLoans();
+        _callSetPendingLenders();
 
         globals.__setOwnedPoolManager(address(poolDelegate), address(poolV2Manager));
 
-        _callTransferLoans();
+        _callSetPendingLenders();
     }
 
     function test_setPendingLenders_notPoolDelegate() external {
         globals.__setIsPoolDelegate(address(poolDelegate), false);
 
         vm.expectRevert("MH:SPL:INVALID_PD");
-        _callTransferLoans();
+        _callSetPendingLenders();
 
         globals.__setIsPoolDelegate(address(poolDelegate), true);
 
-        _callTransferLoans();
+        _callSetPendingLenders();
     }
 
     function test_setPendingLenders_invalidLoanFactory() external {
         globals.__setValidFactory("LOAN", address(loanFactory), false);
 
         vm.expectRevert("MH:SPL:INVALID_LOAN_FACTORY");
-        _callTransferLoans();
+        _callSetPendingLenders();
 
         globals.__setValidFactory("LOAN", address(loanFactory), true);
 
-        _callTransferLoans();
+        _callSetPendingLenders();
     }
 
     function test_setPendingLenders_invalidDebtLockerPool() external {
         debtLocker1.__setPool(address(1));
 
         vm.expectRevert("MH:SPL:INVALID_DL_POOL");
-        _callTransferLoans();
+        _callSetPendingLenders();
 
         debtLocker1.__setPool(address(poolV1));
         debtLocker2.__setPool(address(1));
 
         vm.expectRevert("MH:SPL:INVALID_DL_POOL");
-        _callTransferLoans();
+        _callSetPendingLenders();
 
         debtLocker2.__setPool(address(poolV1));
 
-        _callTransferLoans();
+        _callSetPendingLenders();
     }
 
     function test_setPendingLenders_invalidLoan() external {
         loanFactory.__setIsLoan(address(loan1), false);
 
         vm.expectRevert("MH:SPL:INVALID_LOAN");
-        _callTransferLoans();
+        _callSetPendingLenders();
 
         loanFactory.__setIsLoan(address(loan1), true);
         loanFactory.__setIsLoan(address(loan2), false);
 
         vm.expectRevert("MH:SPL:INVALID_LOAN");
-        _callTransferLoans();
+        _callSetPendingLenders();
 
         loanFactory.__setIsLoan(address(loan2), true);
 
-        _callTransferLoans();
+        _callSetPendingLenders();
     }
 
     function test_setPendingLenders() external {
@@ -242,7 +248,68 @@ contract TransferLoansTests is TestUtils {
         loans[0] = address(loan1);
         loans[1] = address(loan2);
 
-        _callTransferLoans();
+        _callSetPendingLenders();
+    }
+
+}
+
+contract AddLoansToLMTests is MigrationHelperTestBase {
+
+    function _callAddLoansToLM() internal {
+        address[] memory loans = new address[](2);
+        loans[0] = address(loan1);
+        loans[1] = address(loan2);
+
+        vm.prank(owner);
+        migrationHelper.addLoansToLM(address(loanManager), loans);
+    }
+
+    function test_addLoansToLM_notAdmin() external {
+        address[] memory loans = new address[](2);
+        loans[0] = address(loan1);
+        loans[1] = address(loan2);
+
+        vm.expectRevert("MH:ONLY_ADMIN");
+        migrationHelper.setPendingLenders(address(poolV1), address(poolV2Manager), address(loanFactory), loans);
+
+        _callAddLoansToLM();
+    }
+
+    function test_addLoansToLM_protocolPaused() external {
+        globals.__setProtocolPaused(true);
+
+        vm.expectRevert("MH:ALTLM:PROTOCOL_PAUSED");
+        _callAddLoansToLM();
+
+        globals.__setProtocolPaused(false);
+
+        _callAddLoansToLM();
+    }
+
+    function test_addLoansToLM_invalidLoanManager() external {
+        loanManagerFactory.__setIsInstance(address(loanManager), false);
+
+        vm.expectRevert("MH:ALTLM:INVALID_LM");
+        _callAddLoansToLM();
+
+        loanManagerFactory.__setIsInstance(address(loanManager), true);
+
+        _callAddLoansToLM();
+    }
+
+    function test_addLoansToLM_claimableFunds() external {
+        loan1.__setClaimableFunds(1);
+
+        vm.expectRevert("MH:ALTLM:CLAIMABLE_FUNDS");
+        _callAddLoansToLM();
+
+        loan1.__setClaimableFunds(0);
+
+        _callAddLoansToLM();
+    }
+
+    function test_addLoansToLM() external {
+        _callAddLoansToLM();
     }
 
 }

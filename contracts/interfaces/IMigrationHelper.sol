@@ -115,7 +115,7 @@ interface IMigrationHelper {
      *  @param poolV1Address_ The address of the PoolV1 contract.
      *  @param poolManager_   The address of the PoolManager contract for V2.
      *  @param lpsV1_         Array of all LP addresses in
-     *  @param lpsV1_         The address of the pool delegate to transfer ownership to.
+     *  @param lpsV2_         The address of the pool delegate to transfer ownership to.
      *  @param allowedDiff_   The allowed difference between the sum of PoolV2 tokens that were transferred to each LP and the expected value of PoolV1.
      */
     function airdropTokens(address poolV1Address_, address poolManager_, address[] calldata lpsV1_, address[] calldata lpsV2_, uint256 allowedDiff_) external;
@@ -147,5 +147,30 @@ interface IMigrationHelper {
      *  @param version_               The version of the LoanManager to upgrade to.
      */
     function upgradeLoanManager(address transitionLoanManager_, uint256 version_) external;
+
+    /******************************************************************************************************************************/
+    /*** Contingency Functions                                                                                                  ***/
+    /******************************************************************************************************************************/
+
+    /**
+     *  @dev   Function to revert the step to set all the pending lenders, setting all to zero.
+     *  @param loans_ Array of loans to set pending lender to zero on.
+     */
+    function debtLocker_revert_setPendingLenders(address[] calldata loans_) external;
+
+    /**
+     *  @dev   Function to accept ownership of loans again in DebtLocker.
+     *  @param loans_       Array of loans to accept ownership on.
+     *  @param debtLockers_ Array of debtLockers to set pending lender for, must match the loan.
+     */
+    function debtLocker_acceptLenders(address[] calldata loans_, address[] calldata debtLockers_) external;
+
+    /**
+     *  @dev   Function to take the first step to revert the step to take ownership, setting pending lenders to zero.
+     *  @param transitionLoanManager_ The address of the TransitionLoanManager contract.
+     *  @param loans_                 Array of loans to set pending lender to debtLockers for
+     *  @param debtLockers_           Array of debtLockers to set pending lender for, must match the loan.
+     */
+    function transitionLoanManager_revert_takeOwnershipOfLoans(address transitionLoanManager_, address[] calldata loans_, address[] calldata debtLockers_) external;
 
 }

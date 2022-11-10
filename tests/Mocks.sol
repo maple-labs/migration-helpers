@@ -66,8 +66,15 @@ contract MockLoan {
     address public lender;
     address public pendingLender;
 
+    uint256 public claimableFunds;
+    uint256 public nextPaymentDueDate;
+
     function setPendingLender(address newLender_) external {
         pendingLender = newLender_;
+    }
+
+    function __setClaimableFunds(uint256 claimableFunds_) external {
+        claimableFunds = claimableFunds_;
     }
 
     function __setImplementation(address implementation_) external {
@@ -76,6 +83,10 @@ contract MockLoan {
 
     function __setLender(address lender_) external {
         lender = lender_;
+    }
+
+    function __setNextPaymentDueDate(uint256 nextPaymentDueDate_) external {
+        nextPaymentDueDate = nextPaymentDueDate_;
     }
 
 }
@@ -108,6 +119,10 @@ contract MockLoanManager {
 
     function __setFactory(address factory_) external {
         factory = factory_;
+    }
+
+    function add(address loan_) external {
+        // Do nothing
     }
 
 }

@@ -225,6 +225,49 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
     }
 
     /******************************************************************************************************************************/
+    /*** Contingency Functions                                                                                                  ***/
+    /******************************************************************************************************************************/
+
+    function debtLocker_revert_setPendingLenders(address[] calldata loans_) external override onlyAdmin {
+        uint256 length_ = loans_.length;
+
+        for (uint256 i; i < length_;) {
+            IMapleLoanLike  loan_       = IMapleLoanLike(loans_[i]);
+            IDebtLockerLike debtLocker_ = IDebtLockerLike(loan_.lender());
+
+            debtLocker_.setPendingLender(address(0));
+
+            unchecked { ++i; }
+        }
+    }
+
+    function debtLocker_acceptLenders(address[] calldata loans_, address[] calldata debtLockers_) external override onlyAdmin {
+        uint256 length_ = loans_.length;
+
+        for (uint256 i; i < length_;) {
+            require(IDebtLockerLike(debtLockers_[i]).loan() == loans_[i], "MH:DLAL:INVALID_LOAN");
+
+            IDebtLockerLike(debtLockers_[i]).acceptLender();
+
+            unchecked { ++i; }
+        }
+    }
+
+    function transitionLoanManager_revert_takeOwnershipOfLoans(address transitionLoanManager_, address[] calldata loans_, address[] calldata debtLockers_) external override onlyAdmin {
+        uint256 length_ = loans_.length;
+
+        require(length_ == debtLockers_.length, "MH:TLMR:INVALID_INPUT_LENGTHS");
+
+        for (uint256 i; i < length_;) {
+            require(IDebtLockerLike(debtLockers_[i]).loan() == loans_[i], "MH:TLMR:INVALID_LOAN");
+
+            unchecked { ++i; }
+        }
+
+        ITransitionLoanManagerLike(transitionLoanManager_).setOwnershipTo(loans_, debtLockers_);
+    }
+
+    /******************************************************************************************************************************/
     /*** Helper Functions                                                                                                       ***/
     /******************************************************************************************************************************/
 
