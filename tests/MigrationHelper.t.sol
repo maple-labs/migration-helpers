@@ -2,8 +2,8 @@
 pragma solidity 0.8.7;
 
 import { Address, console, TestUtils } from "../modules/contract-test-utils/contracts/test.sol";
-
-import { NonTransparentProxy } from "../modules/non-transparent-proxy/contracts/NonTransparentProxy.sol";
+import { MockERC20 }                   from "../modules/erc20/contracts/test/mocks/MockERC20.sol";
+import { NonTransparentProxy }         from "../modules/non-transparent-proxy/contracts/NonTransparentProxy.sol";
 
 import { MigrationHelper } from "../contracts/MigrationHelper.sol";
 
@@ -13,6 +13,7 @@ import {
     MockLoan,
     MockLoanManager,
     MockLoanFactory,
+    MockPoolV1,
     MockPoolV2Manager,
     MockProxyFactory
 } from "./Mocks.sol";
@@ -310,6 +311,243 @@ contract AdminTests is TestUtils {
         migrationHelper.setGlobals(globals);
 
         assertEq(migrationHelper.globalsV2(), globals);
+    }
+
+}
+
+contract AirdropTokensTests is TestUtils {
+
+    address migrationHelperImplementation;
+
+    address globals = address(new Address());
+    address owner   = address(new Address());
+
+    MigrationHelper migrationHelper;
+
+    MockERC20         liquidityAsset;
+    MockERC20         poolV2;
+    MockPoolV1        poolV1;
+    MockPoolV2Manager poolManager;
+
+    function setUp() external {
+        migrationHelperImplementation = address(new MigrationHelper());
+
+        migrationHelper = MigrationHelper(address(new NonTransparentProxy(owner, migrationHelperImplementation)));
+
+        liquidityAsset = new MockERC20("Liquidity Asset", "LA", 6);
+        poolV2         = new MockERC20("POOL", "POOL", 6);
+        poolV1         = new MockPoolV1();
+        poolManager    = new MockPoolV2Manager();
+
+        poolManager.__setPool(address(poolV2));
+    }
+
+    function test_airdropTokens_notAdmin() external {
+        address lp1 = address(new Address());
+        address lp2 = address(new Address());
+
+        address[] memory lps = new address[](2);
+        lps[0] = lp1;
+        lps[1] = lp2;
+
+        vm.expectRevert("MH:ONLY_ADMIN");
+        migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 1);
+    }
+
+    function test_airdropTokens_aboveAllowedDiff() external {
+        address lp1 = address(new Address());
+        address lp2 = address(new Address());
+
+        address[] memory lps = new address[](2);
+        lps[0] = lp1;
+        lps[1] = lp2;
+
+        poolV1.__setBalanceOf(lp1, 1000e18);
+        poolV1.__setBalanceOf(lp2, 2000e18);
+
+        poolV1.__setWithdrawableFundsOf(lp1, 100e6);
+        poolV1.__setWithdrawableFundsOf(lp2, 200e6);
+
+        poolV1.__setRecognizableLossesOf(lp1, 10e6);
+        poolV1.__setRecognizableLossesOf(lp2, 20e6);
+
+        poolV1.__setTotalSupply(3000e18);
+        poolV1.__setInterestSum(300e6);
+        poolV1.__setPoolLosses(30e6);
+        poolV1.__setLiquidityAsset(address(liquidityAsset));
+
+        poolV2.mint(address(migrationHelper), 3330e18);
+
+        vm.startPrank(owner);
+
+        poolV1.__setBalanceOf(lp1, (1000e6 + 1) * 1e12);  // For conversion to 6 decimals
+
+        vm.expectRevert("MH:AT:VALUE_MISMATCH");
+        migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 0);
+
+        poolV1.__setBalanceOf(lp1, 1000e18);
+        poolV1.__setBalanceOf(lp2, (12000e6 + 1) * 1e12);  // For conversion to 6 decimals
+
+        vm.expectRevert("MH:AT:VALUE_MISMATCH");
+        migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 0);
+
+        poolV1.__setBalanceOf(lp2, 2000e18);
+        poolV1.__setWithdrawableFundsOf(lp1, 100e6 + 1);
+
+        vm.expectRevert("MH:AT:VALUE_MISMATCH");
+        migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 0);
+
+        poolV1.__setWithdrawableFundsOf(lp1, 100e6);
+        poolV1.__setWithdrawableFundsOf(lp2, 200e6 + 1);
+
+        vm.expectRevert("MH:AT:VALUE_MISMATCH");
+        migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 0);
+
+        poolV1.__setWithdrawableFundsOf(lp2, 200e6);
+        poolV1.__setRecognizableLossesOf(lp1, 10e6 - 1);
+
+        vm.expectRevert("MH:AT:VALUE_MISMATCH");
+        migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 0);
+
+        poolV1.__setRecognizableLossesOf(lp1, 10e6);
+        poolV1.__setRecognizableLossesOf(lp2, 20e6 - 1);
+
+        vm.expectRevert("MH:AT:VALUE_MISMATCH");
+        migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 0);
+
+        poolV1.__setRecognizableLossesOf(lp2, 20e6);
+        poolV1.__setTotalSupply((3000e6 + 1) * 1e12);  // For conversion to 6 decimals
+
+        vm.expectRevert("MH:AT:VALUE_MISMATCH");
+        migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 0);
+
+        poolV1.__setTotalSupply(3000e18);
+        poolV1.__setInterestSum(300e6 + 1);
+
+        vm.expectRevert("MH:AT:VALUE_MISMATCH");
+        migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 0);
+
+        poolV1.__setInterestSum(300e6);
+        poolV1.__setPoolLosses(30e6 - 1);
+
+        vm.expectRevert("MH:AT:VALUE_MISMATCH");
+        migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 0);
+
+        poolV1.__setPoolLosses(30e6);
+
+        migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 1);
+    }
+
+    function test_airdropTokens_aboveAllowedDiff_negative() external {
+        address lp1 = address(new Address());
+        address lp2 = address(new Address());
+
+        address[] memory lps = new address[](2);
+        lps[0] = lp1;
+        lps[1] = lp2;
+
+        poolV1.__setBalanceOf(lp1, 1000e18);
+        poolV1.__setBalanceOf(lp2, 2000e18);
+
+        poolV1.__setWithdrawableFundsOf(lp1, 100e6);
+        poolV1.__setWithdrawableFundsOf(lp2, 200e6);
+
+        poolV1.__setRecognizableLossesOf(lp1, 10e6);
+        poolV1.__setRecognizableLossesOf(lp2, 20e6);
+
+        poolV1.__setTotalSupply(3000e18);
+        poolV1.__setInterestSum(300e6);
+        poolV1.__setPoolLosses(30e6);
+        poolV1.__setLiquidityAsset(address(liquidityAsset));
+
+        poolV2.mint(address(migrationHelper), 3330e18);
+
+        vm.startPrank(owner);
+
+        poolV1.__setBalanceOf(lp1, (1000e6 - 1) * 1e12);  // For conversion to 6 decimals
+
+        vm.expectRevert("MH:AT:VALUE_MISMATCH");
+        migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 0);
+
+        poolV1.__setBalanceOf(lp1, 1000e18);
+        poolV1.__setBalanceOf(lp2, (12000e6 - 1) * 1e12);  // For conversion to 6 decimals
+
+        vm.expectRevert("MH:AT:VALUE_MISMATCH");
+        migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 0);
+
+        poolV1.__setBalanceOf(lp2, 2000e18);
+        poolV1.__setWithdrawableFundsOf(lp1, 100e6 - 1);
+
+        vm.expectRevert("MH:AT:VALUE_MISMATCH");
+        migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 0);
+
+        poolV1.__setWithdrawableFundsOf(lp1, 100e6);
+        poolV1.__setWithdrawableFundsOf(lp2, 200e6 - 1);
+
+        vm.expectRevert("MH:AT:VALUE_MISMATCH");
+        migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 0);
+
+        poolV1.__setWithdrawableFundsOf(lp2, 200e6);
+        poolV1.__setRecognizableLossesOf(lp1, 10e6 + 1);
+
+        vm.expectRevert("MH:AT:VALUE_MISMATCH");
+        migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 0);
+
+        poolV1.__setRecognizableLossesOf(lp1, 10e6);
+        poolV1.__setRecognizableLossesOf(lp2, 20e6 + 1);
+
+        vm.expectRevert("MH:AT:VALUE_MISMATCH");
+        migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 0);
+
+        poolV1.__setRecognizableLossesOf(lp2, 20e6);
+        poolV1.__setTotalSupply((3000e6 - 1) * 1e12);  // For conversion to 6 decimals
+
+        vm.expectRevert("MH:AT:VALUE_MISMATCH");
+        migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 0);
+
+        poolV1.__setTotalSupply(3000e18);
+        poolV1.__setInterestSum(300e6 - 1);
+
+        vm.expectRevert("MH:AT:VALUE_MISMATCH");
+        migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 0);
+
+        poolV1.__setInterestSum(300e6);
+        poolV1.__setPoolLosses(30e6 + 1);
+
+        vm.expectRevert("MH:AT:VALUE_MISMATCH");
+        migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 0);
+
+        poolV1.__setPoolLosses(30e6);
+
+        migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 1);
+    }
+
+    function test_airdropTokens_exact() external {
+        address lp1 = address(new Address());
+        address lp2 = address(new Address());
+
+        address[] memory lps = new address[](2);
+        lps[0] = lp1;
+        lps[1] = lp2;
+
+        poolV1.__setBalanceOf(lp1, 1000e18);
+        poolV1.__setBalanceOf(lp2, 2000e18);
+
+        poolV1.__setWithdrawableFundsOf(lp1, 100e6);
+        poolV1.__setWithdrawableFundsOf(lp2, 200e6);
+
+        poolV1.__setRecognizableLossesOf(lp1, 10e6);
+        poolV1.__setRecognizableLossesOf(lp2, 20e6);
+
+        poolV1.__setTotalSupply(3000e18);
+        poolV1.__setInterestSum(300e6);  // One too low
+        poolV1.__setPoolLosses(30e6);
+        poolV1.__setLiquidityAsset(address(liquidityAsset));
+
+        poolV2.mint(address(migrationHelper), 3330e18);
+
+        vm.startPrank(owner);
+        migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 0);
     }
 
 }

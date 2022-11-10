@@ -112,8 +112,51 @@ contract MockLoanManager {
 
 }
 
+contract MockPoolV1 {
+
+    address public liquidityAsset;
+
+    uint256 public interestSum;
+    uint256 public poolLosses;
+    uint256 public totalSupply;
+
+    mapping(address => uint256) public balanceOf;
+    mapping(address => uint256) public recognizableLossesOf;
+    mapping(address => uint256) public withdrawableFundsOf;
+
+    function __setBalanceOf(address account_, uint256 balance_) external {
+        balanceOf[account_] = balance_;
+    }
+
+    function __setInterestSum(uint256 interestSum_) external {
+        interestSum = interestSum_;
+    }
+
+    function __setLiquidityAsset(address liquidityAsset_) external {
+        liquidityAsset = liquidityAsset_;
+    }
+
+    function __setPoolLosses(uint256 poolLosses_) external {
+        poolLosses = poolLosses_;
+    }
+
+    function __setTotalSupply(uint256 totalSupply_) external {
+        totalSupply = totalSupply_;
+    }
+
+    function __setRecognizableLossesOf(address account_, uint256 amount_) external {
+        recognizableLossesOf[account_] = amount_;
+    }
+
+    function __setWithdrawableFundsOf(address account_, uint256 amount_) external {
+        withdrawableFundsOf[account_] = amount_;
+    }
+
+}
+
 contract MockPoolV2Manager {
 
+    address public pool;
     address public factory;
     address public poolDelegate;
 
@@ -127,6 +170,10 @@ contract MockPoolV2Manager {
 
     function __setFactory(address factory_) external {
         factory = factory_;
+    }
+
+    function __setPool(address pool_) external {
+        pool = pool_;
     }
 
     function __setPoolDelegate(address poolDelegate_) external {

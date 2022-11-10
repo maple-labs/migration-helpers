@@ -116,8 +116,9 @@ interface IMigrationHelper {
      *  @param poolManager_   The address of the PoolManager contract for V2.
      *  @param lpsV1_         Array of all LP addresses in
      *  @param lpsV1_         The address of the pool delegate to transfer ownership to.
+     *  @param allowedDiff_   The allowed difference between the sum of PoolV2 tokens that were transferred to each LP and the expected value of PoolV1.
      */
-    function airdropTokens(address poolV1Address_, address poolManager_, address[] calldata lpsV1_, address[] calldata lpsV2_) external;
+    function airdropTokens(address poolV1Address_, address poolManager_, address[] calldata lpsV1_, address[] calldata lpsV2_, uint256 allowedDiff_) external;
 
     /**
      *  @dev   Set pending lender of all outstanding loans to the TransitionLoanManager.

@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.7;
 
-import { console } from "../modules/contract-test-utils/contracts/test.sol";
-
 import { ERC20Helper }           from "../modules/erc20-helper/src/ERC20Helper.sol";
 import { NonTransparentProxied } from "../modules/non-transparent-proxy/contracts/NonTransparentProxied.sol";
 
 import {
     IDebtLockerLike,
+    IERC20Like,
     ILoanFactoryLike,
     IMapleGlobalsLike,
     IMapleLoanLike,
@@ -85,13 +84,15 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
     /*** Step 2: Airdrop tokens to all new LPs                                                                                  ***/
     /******************************************************************************************************************************/
 
-    function airdropTokens(address poolV1Address_, address poolManager_, address[] calldata lpsV1_, address[] calldata lpsV2_) external override onlyAdmin {
+    function airdropTokens(address poolV1Address_, address poolManager_, address[] calldata lpsV1_, address[] calldata lpsV2_, uint256 allowedDiff_) external override onlyAdmin {
         IPoolV1Like poolV1_ = IPoolV1Like(poolV1Address_);
+
+        uint256 decimalConversionFactor_ = 10 ** IERC20Like(poolV1_.liquidityAsset()).decimals();
 
         uint256 totalLosses_ = poolV1_.poolLosses();
         address poolV2_      = IPoolManagerLike(poolManager_).pool();
 
-        uint256 totalPoolV1Value_ = poolV1_.totalSupply() + poolV1_.interestSum() - poolV1_.poolLosses();  // Add interfaces
+        uint256 totalPoolV1Value_ = poolV1_.totalSupply() * decimalConversionFactor_ / 1e18 + poolV1_.interestSum() - poolV1_.poolLosses();  // Add interfaces
 
         uint256 totalValueTransferred_;
 
@@ -101,7 +102,7 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
 
             uint256 lpLosses_ = totalLosses_ > 0 ? poolV1_.recognizableLossesOf(lpV1_) : 0;
 
-            uint256 poolV2LPBalance_ = poolV1_.balanceOf(lpV1_) + poolV1_.withdrawableFundsOf(lpV1_) - lpLosses_;
+            uint256 poolV2LPBalance_ = poolV1_.balanceOf(lpV1_) * decimalConversionFactor_ / 1e18 + poolV1_.withdrawableFundsOf(lpV1_) - lpLosses_;
 
             totalValueTransferred_ += poolV2LPBalance_;
 
@@ -110,7 +111,8 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
             emit TokensAirdropped(address(poolV1_), poolV2_, lpV1_, lpV2_, poolV2LPBalance_);
         }
 
-        require(totalPoolV1Value_ - totalValueTransferred_ < lpsV1_.length, "MH:AT:VALUE_MISMATCH");
+        uint256 absError = totalPoolV1Value_  > totalValueTransferred_ ? totalPoolV1Value_ - totalValueTransferred_ : totalValueTransferred_ - totalPoolV1Value_;
+        require(absError <= allowedDiff_, "MH:AT:VALUE_MISMATCH");
     }
 
     /******************************************************************************************************************************/

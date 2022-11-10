@@ -14,7 +14,9 @@ interface IERC20Like {
 
     function approve(address account_, uint256 amount) external returns (bool success_);
 
-    function balanceOf(address account_) external view returns(uint256);
+    function balanceOf(address account_) external view returns(uint256 balance_);
+
+    function decimals() external view returns (uint256 decimals_);
 
     function transfer(address to_, uint256 amount) external returns (bool success_);
 
@@ -131,6 +133,8 @@ interface IPoolV1Like {
     function balanceOf(address account_) external view returns (uint256 balance_);
 
     function interestSum() external view returns (uint256 interestSum_);
+
+    function liquidityAsset() external view returns (address liquidityAsset_);
 
     function poolLosses() external view returns (uint256 poolLosses_);
 
