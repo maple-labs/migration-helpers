@@ -78,18 +78,17 @@ contract AccountingChecker {
         uint256 managementFeeRate_;
 
         {
-            uint256 delegateManagementFeeRate_ = IMapleGlobalsLike(globals).delegateManagementFeeRate(poolManager_);
+            uint256 delegateManagementFeeRate_ = IPoolManagerLike(poolManager_).delegateManagementFeeRate();
             uint256 platformManagementFeeRate_ = IMapleGlobalsLike(globals).platformManagementFeeRate(poolManager_);
 
             managementFeeRate_ = delegateManagementFeeRate_+ platformManagementFeeRate_;
 
-        // NOTE: If combined fee is greater than 100%, then cap delegate fee and clamp management fee.
-        if (managementFeeRate_ > HUNDRED_PERCENT) {
-            delegateManagementFeeRate_ = HUNDRED_PERCENT - platformManagementFeeRate_;
-            managementFeeRate_         = HUNDRED_PERCENT;
+            // NOTE: If combined fee is greater than 100%, then cap delegate fee and clamp management fee.
+            if (managementFeeRate_ > HUNDRED_PERCENT) {
+                delegateManagementFeeRate_ = HUNDRED_PERCENT - platformManagementFeeRate_;
+                managementFeeRate_         = HUNDRED_PERCENT;
+            }
         }
-        }
-
 
         IMapleLoanLike loan_ = IMapleLoanLike(loanAddress_);
 

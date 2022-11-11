@@ -244,27 +244,33 @@ contract SetPendingLendersTests is MigrationHelperTestBase {
     }
 
     function test_setPendingLenders() external {
+        _callSetPendingLenders();
+    }
+
+    function test_setPendingLenders_rollback() external {
         address[] memory loans = new address[](2);
         loans[0] = address(loan1);
         loans[1] = address(loan2);
 
-        _callSetPendingLenders();
+        vm.startPrank(owner);
+        migrationHelper.setPendingLenders(address(poolV1), address(poolV2Manager), address(loanFactory), loans);
+        migrationHelper.rollback_setPendingLenders(loans);
     }
 
 }
 
-contract AddLoansToLMTests is MigrationHelperTestBase {
+contract AddLoansToLoanManagerTests is MigrationHelperTestBase {
 
-    function _callAddLoansToLM() internal {
+    function _callAddLoansToLoanManager() internal {
         address[] memory loans = new address[](2);
         loans[0] = address(loan1);
         loans[1] = address(loan2);
 
         vm.prank(owner);
-        migrationHelper.addLoansToLM(address(loanManager), loans);
+        migrationHelper.addLoansToLoanManager(address(loanManager), loans);
     }
 
-    function test_addLoansToLM_notAdmin() external {
+    function test_addLoansToLoanManager_notAdmin() external {
         address[] memory loans = new address[](2);
         loans[0] = address(loan1);
         loans[1] = address(loan2);
@@ -272,44 +278,44 @@ contract AddLoansToLMTests is MigrationHelperTestBase {
         vm.expectRevert("MH:ONLY_ADMIN");
         migrationHelper.setPendingLenders(address(poolV1), address(poolV2Manager), address(loanFactory), loans);
 
-        _callAddLoansToLM();
+        _callAddLoansToLoanManager();
     }
 
-    function test_addLoansToLM_protocolPaused() external {
+    function test_addLoansToLoanManager_protocolPaused() external {
         globals.__setProtocolPaused(true);
 
         vm.expectRevert("MH:ALTLM:PROTOCOL_PAUSED");
-        _callAddLoansToLM();
+        _callAddLoansToLoanManager();
 
         globals.__setProtocolPaused(false);
 
-        _callAddLoansToLM();
+        _callAddLoansToLoanManager();
     }
 
-    function test_addLoansToLM_invalidLoanManager() external {
+    function test_addLoansToLoanManager_invalidLoanManager() external {
         loanManagerFactory.__setIsInstance(address(loanManager), false);
 
         vm.expectRevert("MH:ALTLM:INVALID_LM");
-        _callAddLoansToLM();
+        _callAddLoansToLoanManager();
 
         loanManagerFactory.__setIsInstance(address(loanManager), true);
 
-        _callAddLoansToLM();
+        _callAddLoansToLoanManager();
     }
 
-    function test_addLoansToLM_claimableFunds() external {
+    function test_addLoansToLoanManager_claimableFunds() external {
         loan1.__setClaimableFunds(1);
 
         vm.expectRevert("MH:ALTLM:CLAIMABLE_FUNDS");
-        _callAddLoansToLM();
+        _callAddLoansToLoanManager();
 
         loan1.__setClaimableFunds(0);
 
-        _callAddLoansToLM();
+        _callAddLoansToLoanManager();
     }
 
-    function test_addLoansToLM() external {
-        _callAddLoansToLM();
+    function test_addLoansToLoanManager() external {
+        _callAddLoansToLoanManager();
     }
 
 }
@@ -618,3 +624,6 @@ contract AirdropTokensTests is TestUtils {
     }
 
 }
+
+// TODO: test takeOwnershipOfLoans and rollback
+// TODO: test upgradeLoanManager and rollback

@@ -24,6 +24,8 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
     address public override globalsV2;
     address public override pendingAdmin;
 
+    mapping(address => address) public override previousLenderOf;
+
     /******************************************************************************************************************************/
     /*** Modifiers                                                                                                              ***/
     /******************************************************************************************************************************/
@@ -38,8 +40,7 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
     /******************************************************************************************************************************/
 
     function setPendingAdmin(address pendingAdmin_) external override onlyAdmin {
-        pendingAdmin = pendingAdmin_;
-        emit PendingAdminSet(pendingAdmin_);
+        emit PendingAdminSet(pendingAdmin = pendingAdmin_);
     }
 
     function acceptOwner() external override {
@@ -53,16 +54,14 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
     }
 
     function setGlobals(address globalsV2_) external override onlyAdmin {
-        globalsV2 = globalsV2_;
-
-        emit GlobalsSet(globalsV2_);
+        emit GlobalsSet(globalsV2 = globalsV2_);
     }
 
     /******************************************************************************************************************************/
-    /*** Step 1: Add Loans to TransitionLoanManager accounting                                                                  ***/
+    /*** Step 1: Add Loans to TransitionLoanManager accounting (No contingency needed) [Phase 7]                                ***/
     /******************************************************************************************************************************/
 
-    function addLoansToLM(address transitionLoanManager_, address[] calldata loans_) external override onlyAdmin {
+    function addLoansToLoanManager(address transitionLoanManager_, address[] calldata loans_) external override onlyAdmin {
         IMapleGlobalsLike globalsV2_ = IMapleGlobalsLike(globalsV2);
 
         // Check the protocol is not paused.
@@ -81,7 +80,7 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
     }
 
     /******************************************************************************************************************************/
-    /*** Step 2: Airdrop tokens to all new LPs                                                                                  ***/
+    /*** Step 2: Airdrop tokens to all new LPs (No contingency needed) [Phase 10]                                               ***/
     /******************************************************************************************************************************/
 
     function airdropTokens(address poolV1Address_, address poolManager_, address[] calldata lpsV1_, address[] calldata lpsV2_, uint256 allowedDiff_) external override onlyAdmin {
@@ -92,7 +91,7 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
         uint256 totalLosses_ = poolV1_.poolLosses();
         address poolV2_      = IPoolManagerLike(poolManager_).pool();
 
-        uint256 totalPoolV1Value_ = poolV1_.totalSupply() * decimalConversionFactor_ / 1e18 + poolV1_.interestSum() - poolV1_.poolLosses();  // Add interfaces
+        uint256 totalPoolV1Value_ = ((poolV1_.totalSupply() * decimalConversionFactor_) / 1e18) + poolV1_.interestSum() - poolV1_.poolLosses();  // Add interfaces
 
         uint256 totalValueTransferred_;
 
@@ -116,7 +115,7 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
     }
 
     /******************************************************************************************************************************/
-    /*** Step 3: Set pending lender ownership for all loans to new LoanManager                                                  ***/
+    /*** Step 3: Set pending lender ownership for all loans to new LoanManager (Contingency needed) [Phase 12-13]                  ***/
     /******************************************************************************************************************************/
 
     function setPendingLenders(
@@ -135,31 +134,33 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
 
         // Check the PoolManager is valid (avoid stack too deep).
         {
-            address poolManagerFactory_ = poolV2Manager_.factory();
+            address poolManagerFactory_ = IPoolManagerLike(poolV2ManagerAddress_).factory();
             require(IMapleProxyFactoryLike(poolManagerFactory_).isInstance(poolV2ManagerAddress_), "MH:SPL:INVALID_PM");
-            require(globalsV2_.isFactory("POOL_MANAGER", poolManagerFactory_),                     "MH:SPL:INVALID_PM_FACTORY");
+            require(IMapleGlobalsLike(globalsV2).isFactory("POOL_MANAGER", poolManagerFactory_),   "MH:SPL:INVALID_PM_FACTORY");
         }
 
-        address transitionLoanManager_ = poolV2Manager_.loanManagerList(0);
+        address transitionLoanManager_ = IPoolManagerLike(poolV2ManagerAddress_).loanManagerList(0);
 
         // Check the TransitionLoanManager is valid (avoid stack too deep).
         {
             address loanManagerFactory_ = IMapleProxiedLike(transitionLoanManager_).factory();
             require(IMapleProxyFactoryLike(loanManagerFactory_).isInstance(transitionLoanManager_), "MH:SPL:INVALID_LM");
-            require(globalsV2_.isFactory("LOAN_MANAGER", loanManagerFactory_),                      "MH:SPL:INVALID_LM_FACTORY");
+            require(IMapleGlobalsLike(globalsV2).isFactory("LOAN_MANAGER", loanManagerFactory_),    "MH:SPL:INVALID_LM_FACTORY");
         }
 
         // Check the Pool is active and owned by a valid PD (avoid stack too deep).
         {
-            ( address ownedPoolManager_, bool isPoolDelegate_ ) = globalsV2_.poolDelegates(poolV2Manager_.poolDelegate());
-            require(poolV2Manager_.active(),                    "MH:SPL:PM_NOT_ACTIVE");
-            require(ownedPoolManager_ == poolV2ManagerAddress_, "MH:SPL:NOT_OWNED_PM");
-            require(isPoolDelegate_,                            "MH:SPL:INVALID_PD");
+            (
+                address ownedPoolManager_,
+                bool isPoolDelegate_
+            ) = IMapleGlobalsLike(globalsV2).poolDelegates(IPoolManagerLike(poolV2ManagerAddress_).poolDelegate());
+
+            require(IPoolManagerLike(poolV2ManagerAddress_).active(), "MH:SPL:PM_NOT_ACTIVE");
+            require(ownedPoolManager_ == poolV2ManagerAddress_,       "MH:SPL:NOT_OWNED_PM");
+            require(isPoolDelegate_,                                  "MH:SPL:INVALID_PD");
         }
 
-        ILoanFactoryLike loanFactory_ = ILoanFactoryLike(loanFactoryAddress_);
-
-        require(globalsV2_.isFactory("LOAN", loanFactoryAddress_), "MH:SPL:INVALID_LOAN_FACTORY");
+        require(IMapleGlobalsLike(globalsV2).isFactory("LOAN", loanFactoryAddress_), "MH:SPL:INVALID_LOAN_FACTORY");
 
         for (uint256 i; i < loans_.length; ++i) {
             IMapleLoanLike  loan_       = IMapleLoanLike(loans_[i]);
@@ -169,12 +170,11 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
             require(debtLocker_.pool() == poolV1_, "MH:SPL:INVALID_DL_POOL");
 
             // Validate the loan.
-            require(loanFactory_.isLoan(address(loan_)), "MH:SPL:INVALID_LOAN");
+            require(ILoanFactoryLike(loanFactoryAddress_).isLoan(address(loan_)), "MH:SPL:INVALID_LOAN");
 
-            // Transfer loan ownership
+            // Begin transfer of loan to the TransitionLoanManager.
             debtLocker_.setPendingLender(transitionLoanManager_);
 
-            // Transfer loan to the TransitionLoanManager.
             require(loan_.pendingLender() == transitionLoanManager_, "MH:SPL:INVALID_PENDING_LENDER");
 
             emit PendingLenderSet(address(loan_), transitionLoanManager_);
@@ -182,7 +182,7 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
     }
 
     /******************************************************************************************************************************/
-    /*** Step 4: Take ownership of all loans                                                                                    ***/
+    /*** Step 4: Take ownership of all loans (Contingency needed) [Phase 14-15]                                                    ***/
     /******************************************************************************************************************************/
 
     function takeOwnershipOfLoans(address transitionLoanManager_, address[] calldata loans_) external override onlyAdmin {
@@ -196,6 +196,11 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
         require(IMapleProxyFactoryLike(loanManagerFactory_).isInstance(transitionLoanManager_), "MH:TOOL:INVALID_LM");
         require(globalsV2_.isFactory("LOAN_MANAGER", loanManagerFactory_),                      "MH:TOOL:INVALID_LM_FACTORY");
 
+        for (uint256 i; i < loans_.length; ++i) {
+            address loan_ = loans_[i];
+            previousLenderOf[loan_] = IMapleLoanLike(loan_).lender();
+        }
+
         ITransitionLoanManagerLike(transitionLoanManager_).takeOwnership(loans_);
 
         for (uint256 i; i < loans_.length; ++i) {
@@ -205,10 +210,10 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
     }
 
     /******************************************************************************************************************************/
-    /*** Step 5: Upgrade Loans                                                                                                  ***/
+    /*** Step 5: Upgrade Loans (Contingency needed) [Phase 16]                                                                  ***/
     /******************************************************************************************************************************/
 
-    function upgradeLoanManager(address transitionLoanManager_, uint256 version_) external override onlyAdmin {
+    function upgradeLoanManager(address transitionLoanManager_, uint256 version_) public override onlyAdmin {
         IMapleGlobalsLike globalsV2_ = IMapleGlobalsLike(globalsV2);
 
         // Check the protocol is not paused.
@@ -228,43 +233,38 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
     /*** Contingency Functions                                                                                                  ***/
     /******************************************************************************************************************************/
 
-    function debtLocker_revert_setPendingLenders(address[] calldata loans_) external override onlyAdmin {
-        uint256 length_ = loans_.length;
-
-        for (uint256 i; i < length_;) {
-            IMapleLoanLike  loan_       = IMapleLoanLike(loans_[i]);
-            IDebtLockerLike debtLocker_ = IDebtLockerLike(loan_.lender());
-
-            debtLocker_.setPendingLender(address(0));
-
-            unchecked { ++i; }
+    // Rollback Step 3 [Phase 12-13]
+    function rollback_setPendingLenders(address[] calldata loans_) external override onlyAdmin {
+        for (uint256 i; i < loans_.length; ++i) {
+            IDebtLockerLike(
+                IMapleLoanLike(loans_[i]).lender()
+            ).setPendingLender(address(0));
         }
+
+        emit RolledBackSetPendingLenders(loans_);
     }
 
-    function debtLocker_acceptLenders(address[] calldata loans_, address[] calldata debtLockers_) external override onlyAdmin {
-        uint256 length_ = loans_.length;
+    // Rollback Step 4 [Phase 14-15]
+    function rollback_takeOwnershipOfLoans(address transitionLoanManager_, address[] calldata loans_) external override onlyAdmin {
+        address[] memory debtLockers_ = new address[](loans_.length);
 
-        for (uint256 i; i < length_;) {
-            require(IDebtLockerLike(debtLockers_[i]).loan() == loans_[i], "MH:DLAL:INVALID_LOAN");
-
-            IDebtLockerLike(debtLockers_[i]).acceptLender();
-
-            unchecked { ++i; }
-        }
-    }
-
-    function transitionLoanManager_revert_takeOwnershipOfLoans(address transitionLoanManager_, address[] calldata loans_, address[] calldata debtLockers_) external override onlyAdmin {
-        uint256 length_ = loans_.length;
-
-        require(length_ == debtLockers_.length, "MH:TLMR:INVALID_INPUT_LENGTHS");
-
-        for (uint256 i; i < length_;) {
-            require(IDebtLockerLike(debtLockers_[i]).loan() == loans_[i], "MH:TLMR:INVALID_LOAN");
-
-            unchecked { ++i; }
+        for (uint256 i; i < loans_.length; ++i) {
+            debtLockers_[i] = previousLenderOf[loans_[i]];
+            delete previousLenderOf[loans_[i]];
         }
 
         ITransitionLoanManagerLike(transitionLoanManager_).setOwnershipTo(loans_, debtLockers_);
+
+        for (uint256 i; i < debtLockers_.length; ++i) {
+            IDebtLockerLike(debtLockers_[i]).acceptLender();
+        }
+
+        emit RolledBackTakeOwnershipOfLoans(loans_, debtLockers_);
+    }
+
+    // Rollback Step 5 [Phase 16]
+    function rollback_upgradeLoanManager(address transitionLoanManager_, uint256 version_) external override onlyAdmin {
+        upgradeLoanManager(transitionLoanManager_, version_);
     }
 
     /******************************************************************************************************************************/
