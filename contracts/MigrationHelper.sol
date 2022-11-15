@@ -115,7 +115,7 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
     }
 
     /******************************************************************************************************************************/
-    /*** Step 3: Set pending lender ownership for all loans to new LoanManager (Contingency needed) [Phase 12-13]                  ***/
+    /*** Step 3: Set pending lender ownership for all loans to new LoanManager (Contingency needed) [Phase 12-13]               ***/
     /******************************************************************************************************************************/
 
     function setPendingLenders(
@@ -182,7 +182,7 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
     }
 
     /******************************************************************************************************************************/
-    /*** Step 4: Take ownership of all loans (Contingency needed) [Phase 14-15]                                                    ***/
+    /*** Step 4: Take ownership of all loans (Contingency needed) [Phase 14-15]                                                 ***/
     /******************************************************************************************************************************/
 
     function takeOwnershipOfLoans(address transitionLoanManager_, address[] calldata loans_) external override onlyAdmin {
@@ -210,7 +210,7 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
     }
 
     /******************************************************************************************************************************/
-    /*** Step 5: Upgrade Loans (Contingency needed) [Phase 16]                                                                  ***/
+    /*** Step 5: Upgrade Loan Manager (Contingency needed) [Phase 16]                                                           ***/
     /******************************************************************************************************************************/
 
     function upgradeLoanManager(address transitionLoanManager_, uint256 version_) public override onlyAdmin {
@@ -260,11 +260,6 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
         }
 
         emit RolledBackTakeOwnershipOfLoans(loans_, debtLockers_);
-    }
-
-    // Rollback Step 5 [Phase 16]
-    function rollback_upgradeLoanManager(address transitionLoanManager_, uint256 version_) external override onlyAdmin {
-        upgradeLoanManager(transitionLoanManager_, version_);
     }
 
     /******************************************************************************************************************************/

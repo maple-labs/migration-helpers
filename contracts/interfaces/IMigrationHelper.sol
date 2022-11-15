@@ -180,11 +180,4 @@ interface IMigrationHelper {
      */
     function rollback_takeOwnershipOfLoans(address transitionLoanManager_, address[] calldata loans_) external;
 
-    /**
-     *  @dev   Function to revert upgrade of the TransitionLoanManager to the LoanManager.
-     *  @param transitionLoanManager_ The address of the TransitionLoanManager contract.
-     *  @param version_               The version of the LoanManager to downgrade to.
-     */
-    function rollback_upgradeLoanManager(address transitionLoanManager_, uint256 version_) external;
-
 }
