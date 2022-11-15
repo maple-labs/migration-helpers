@@ -116,7 +116,7 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
 
         uint256 dust_ = IERC20Like(address(poolV2_)).balanceOf(address(this));
 
-        require(dust_ == 0 || ERC20Helper.transfer(poolV2_, IPoolManagerLike(poolManager_).poolDelegate(), dust_), "MH:AT:PD_TRANSFER_FAILED");
+        require(dust_ == 0 || ERC20Helper.transfer(poolV2_, lpsV2_[0], dust_), "MH:AT:PD_TRANSFER_FAILED");
     }
 
     /******************************************************************************************************************************/

@@ -652,7 +652,7 @@ contract AirdropTokensTests is TestUtils {
         vm.startPrank(owner);
         migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 0);
 
-        assertEq(poolV2.balanceOf(poolDelegate), 1e6);
+        assertEq(poolV2.balanceOf(lp1), 1091e6);
     }
 
 }
