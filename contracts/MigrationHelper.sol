@@ -69,13 +69,15 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
 
         // Check the TransitionLoanManager is valid.
         address loanManagerFactory_ = IMapleProxiedLike(transitionLoanManager_).factory();
+
         require(IMapleProxyFactoryLike(loanManagerFactory_).isInstance(transitionLoanManager_), "MH:ALTLM:INVALID_LM");
         require(globalsV2_.isFactory("LOAN_MANAGER", loanManagerFactory_),                      "MH:ALTLM:INVALID_LM_FACTORY");
 
         for (uint256 i; i < loans_.length; ++i) {
-            require(IMapleLoanLike(loans_[i]).claimableFunds() == 0, "MH:ALTLM:CLAIMABLE_FUNDS");
-            ITransitionLoanManagerLike(transitionLoanManager_).add(loans_[i]);
-            emit LoanAddedToTransitionLoanManager(transitionLoanManager_, loans_[i]);
+            address loan_ = loans_[i];
+            require(IMapleLoanLike(loan_).claimableFunds() == 0, "MH:ALTLM:CLAIMABLE_FUNDS");
+            ITransitionLoanManagerLike(transitionLoanManager_).add(loan_);
+            emit LoanAddedToTransitionLoanManager(transitionLoanManager_, loan_);
         }
     }
 
@@ -87,9 +89,8 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
         IPoolV1Like poolV1_ = IPoolV1Like(poolV1Address_);
 
         uint256 decimalConversionFactor_ = 10 ** IERC20Like(poolV1_.liquidityAsset()).decimals();
-
-        uint256 totalLosses_ = poolV1_.poolLosses();
-        address poolV2_      = IPoolManagerLike(poolManager_).pool();
+        uint256 totalLosses_             = poolV1_.poolLosses();
+        address poolV2_                  = IPoolManagerLike(poolManager_).pool();
 
         uint256 totalPoolV1Value_ = ((poolV1_.totalSupply() * decimalConversionFactor_) / 1e18) + poolV1_.interestSum() - poolV1_.poolLosses();  // Add interfaces
 
@@ -105,29 +106,25 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
 
             totalValueTransferred_ += poolV2LPBalance_;
 
-            require(ERC20Helper.transfer(poolV2_, lpV2_, poolV2LPBalance_), "MH:AT:TRANSFER_FAILED");
+            require(ERC20Helper.transfer(poolV2_, lpV2_, poolV2LPBalance_), "MH:AT:LP_TRANSFER_FAILED");
 
             emit TokensAirdropped(address(poolV1_), poolV2_, lpV1_, lpV2_, poolV2LPBalance_);
         }
 
-        uint256 absError = totalPoolV1Value_  > totalValueTransferred_ ? totalPoolV1Value_ - totalValueTransferred_ : totalValueTransferred_ - totalPoolV1Value_;
-        require(absError <= allowedDiff_, "MH:AT:VALUE_MISMATCH");
+        uint256 absError_ = totalPoolV1Value_ > totalValueTransferred_ ? totalPoolV1Value_ - totalValueTransferred_ : totalValueTransferred_ - totalPoolV1Value_;
+        require(absError_ <= allowedDiff_, "MH:AT:VALUE_MISMATCH");
+
+        uint256 dust_ = IERC20Like(address(poolV2_)).balanceOf(address(this));
+
+        require(dust_ == 0 || ERC20Helper.transfer(poolV2_, IPoolManagerLike(poolManager_).poolDelegate(), dust_), "MH:AT:PD_TRANSFER_FAILED");
     }
 
     /******************************************************************************************************************************/
     /*** Step 3: Set pending lender ownership for all loans to new LoanManager (Contingency needed) [Phase 12-13]               ***/
     /******************************************************************************************************************************/
 
-    function setPendingLenders(
-        address poolV1_,
-        address poolV2ManagerAddress_,
-        address loanFactoryAddress_,
-        address[] calldata loans_
-    )
-        external override onlyAdmin
-    {
-        IMapleGlobalsLike globalsV2_     = IMapleGlobalsLike(globalsV2);
-        IPoolManagerLike  poolV2Manager_ = IPoolManagerLike(poolV2ManagerAddress_);
+    function setPendingLenders(address poolV1_, address poolV2ManagerAddress_, address loanFactoryAddress_, address[] calldata loans_) external override onlyAdmin {
+        IMapleGlobalsLike globalsV2_ = IMapleGlobalsLike(globalsV2);
 
         // Check the protocol is not paused.
         require(!globalsV2_.protocolPaused(), "MH:SPL:PROTOCOL_PAUSED");
@@ -135,6 +132,7 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
         // Check the PoolManager is valid (avoid stack too deep).
         {
             address poolManagerFactory_ = IPoolManagerLike(poolV2ManagerAddress_).factory();
+
             require(IMapleProxyFactoryLike(poolManagerFactory_).isInstance(poolV2ManagerAddress_), "MH:SPL:INVALID_PM");
             require(IMapleGlobalsLike(globalsV2).isFactory("POOL_MANAGER", poolManagerFactory_),   "MH:SPL:INVALID_PM_FACTORY");
         }
@@ -144,6 +142,7 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
         // Check the TransitionLoanManager is valid (avoid stack too deep).
         {
             address loanManagerFactory_ = IMapleProxiedLike(transitionLoanManager_).factory();
+
             require(IMapleProxyFactoryLike(loanManagerFactory_).isInstance(transitionLoanManager_), "MH:SPL:INVALID_LM");
             require(IMapleGlobalsLike(globalsV2).isFactory("LOAN_MANAGER", loanManagerFactory_),    "MH:SPL:INVALID_LM_FACTORY");
         }
@@ -193,6 +192,7 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
 
         // Check the TransitionLoanManager is valid.
         address loanManagerFactory_ = IMapleProxiedLike(transitionLoanManager_).factory();
+
         require(IMapleProxyFactoryLike(loanManagerFactory_).isInstance(transitionLoanManager_), "MH:TOOL:INVALID_LM");
         require(globalsV2_.isFactory("LOAN_MANAGER", loanManagerFactory_),                      "MH:TOOL:INVALID_LM_FACTORY");
 
@@ -204,8 +204,9 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
         ITransitionLoanManagerLike(transitionLoanManager_).takeOwnership(loans_);
 
         for (uint256 i; i < loans_.length; ++i) {
-            require(IMapleLoanLike(loans_[i]).lender() == transitionLoanManager_, "MH:TOOL:INVALID_LENDER");
-            emit LenderAccepted(loans_[i], transitionLoanManager_);
+            address loan_ = loans_[i];
+            require(IMapleLoanLike(loan_).lender() == transitionLoanManager_, "MH:TOOL:INVALID_LENDER");
+            emit LenderAccepted(loan_, transitionLoanManager_);
         }
     }
 
@@ -249,8 +250,9 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
         address[] memory debtLockers_ = new address[](loans_.length);
 
         for (uint256 i; i < loans_.length; ++i) {
-            debtLockers_[i] = previousLenderOf[loans_[i]];
-            delete previousLenderOf[loans_[i]];
+            address loan_ = loans_[i];
+            debtLockers_[i] = previousLenderOf[loan_];
+            delete previousLenderOf[loan_];
         }
 
         ITransitionLoanManagerLike(transitionLoanManager_).setOwnershipTo(loans_, debtLockers_);

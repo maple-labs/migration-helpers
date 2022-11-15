@@ -392,8 +392,9 @@ contract AirdropTokensTests is TestUtils {
 
     address migrationHelperImplementation;
 
-    address globals = address(new Address());
-    address owner   = address(new Address());
+    address globals      = address(new Address());
+    address owner        = address(new Address());
+    address poolDelegate = address(new Address());
 
     MigrationHelper migrationHelper;
 
@@ -413,6 +414,7 @@ contract AirdropTokensTests is TestUtils {
         poolManager    = new MockPoolV2Manager();
 
         poolManager.__setPool(address(poolV2));
+        poolManager.__setPoolDelegate(address(poolDelegate));
     }
 
     function test_airdropTokens_notAdmin() external {
@@ -621,6 +623,36 @@ contract AirdropTokensTests is TestUtils {
 
         vm.startPrank(owner);
         migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 0);
+    }
+
+    function test_airdropTokens_remaining() external {
+        address lp1 = address(new Address());
+        address lp2 = address(new Address());
+
+        address[] memory lps = new address[](2);
+        lps[0] = lp1;
+        lps[1] = lp2;
+
+        poolV1.__setBalanceOf(lp1, 1000e18);
+        poolV1.__setBalanceOf(lp2, 2000e18);
+
+        poolV1.__setWithdrawableFundsOf(lp1, 100e6);
+        poolV1.__setWithdrawableFundsOf(lp2, 200e6);
+
+        poolV1.__setRecognizableLossesOf(lp1, 10e6);
+        poolV1.__setRecognizableLossesOf(lp2, 20e6);
+
+        poolV1.__setTotalSupply(3000e18);
+        poolV1.__setInterestSum(300e6);  // One too low
+        poolV1.__setPoolLosses(30e6);
+        poolV1.__setLiquidityAsset(address(liquidityAsset));
+
+        poolV2.mint(address(migrationHelper), 3271e6);
+
+        vm.startPrank(owner);
+        migrationHelper.airdropTokens(address(poolV1), address(poolManager), lps, lps, 0);
+
+        assertEq(poolV2.balanceOf(poolDelegate), 1e6);
     }
 
 }
