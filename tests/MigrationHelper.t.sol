@@ -23,7 +23,6 @@ contract MigrationHelperTestBase is TestUtils {
     address migrationHelperImplementation;
 
     address loanImplementation = address(new Address());
-    address poolV1             = address(new Address());
     address owner              = address(new Address());
     address poolDelegate       = address(new Address());
 
@@ -34,6 +33,7 @@ contract MigrationHelperTestBase is TestUtils {
     MockLoan          loan2              = new MockLoan();
     MockLoanManager   loanManager        = new MockLoanManager();
     MockLoanFactory   loanFactory        = new MockLoanFactory();
+    MockPoolV1        poolV1             = new MockPoolV1();
     MockPoolV2Manager poolV2Manager      = new MockPoolV2Manager();
     MockProxyFactory  loanManagerFactory = new MockProxyFactory();
     MockProxyFactory  poolManagerFactory = new MockProxyFactory();
@@ -58,7 +58,10 @@ contract MigrationHelperTestBase is TestUtils {
         loan2.__setImplementation(loanImplementation);
 
         loan1.__setLender(address(debtLocker1));
+        loan1.__setPrincipal(1_000_000e6);
+
         loan2.__setLender(address(debtLocker2));
+        loan2.__setPrincipal(2_500_000e6);
 
         loanFactory.__setDefaultVersion(400);
         loanFactory.__setImplementation(400, loanImplementation);
@@ -68,6 +71,8 @@ contract MigrationHelperTestBase is TestUtils {
         loanManager.__setFactory(address(loanManagerFactory));
 
         loanManagerFactory.__setIsInstance(address(loanManager), true);
+
+        poolV1.__setPrincipalOut(loan1.principal() + loan2.principal());
 
         poolV2Manager.__setActive(true);
         poolV2Manager.__setFactory(address(poolManagerFactory));
@@ -267,7 +272,7 @@ contract AddLoansToLoanManagerTests is MigrationHelperTestBase {
         loans[1] = address(loan2);
 
         vm.prank(owner);
-        migrationHelper.addLoansToLoanManager(address(loanManager), loans);
+        migrationHelper.addLoansToLoanManager(address(poolV1), address(loanManager), loans);
     }
 
     function test_addLoansToLoanManager_notAdmin() external {
@@ -299,6 +304,19 @@ contract AddLoansToLoanManagerTests is MigrationHelperTestBase {
         _callAddLoansToLoanManager();
 
         loanManagerFactory.__setIsInstance(address(loanManager), true);
+
+        _callAddLoansToLoanManager();
+    }
+
+    function test_addLoansToLoanManager_invalidPrincipal() external {
+        uint256 expectedPrincipal = loan1.principal() + loan2.principal();
+
+        poolV1.__setPrincipalOut(expectedPrincipal - 1);
+
+        vm.expectRevert("MH:ALTLM:INVALID_PRINCIPAL");
+        _callAddLoansToLoanManager();
+
+        poolV1.__setPrincipalOut(expectedPrincipal);
 
         _callAddLoansToLoanManager();
     }

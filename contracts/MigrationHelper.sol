@@ -61,7 +61,7 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
     /*** Step 1: Add Loans to TransitionLoanManager accounting (No contingency needed) [Phase 7]                                ***/
     /******************************************************************************************************************************/
 
-    function addLoansToLoanManager(address transitionLoanManager_, address[] calldata loans_) external override onlyAdmin {
+    function addLoansToLoanManager(address poolV1_, address transitionLoanManager_, address[] calldata loans_) external override onlyAdmin {
         IMapleGlobalsLike globalsV2_ = IMapleGlobalsLike(globalsV2);
 
         // Check the protocol is not paused.
@@ -73,12 +73,20 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
         require(IMapleProxyFactoryLike(loanManagerFactory_).isInstance(transitionLoanManager_), "MH:ALTLM:INVALID_LM");
         require(globalsV2_.isFactory("LOAN_MANAGER", loanManagerFactory_),                      "MH:ALTLM:INVALID_LM_FACTORY");
 
+        uint256 expectedPrincipal_ = IPoolV1Like(poolV1_).principalOut();
+        uint256 countedPrincipal_  = 0;
+
         for (uint256 i; i < loans_.length; ++i) {
             address loan_ = loans_[i];
             require(IMapleLoanLike(loan_).claimableFunds() == 0, "MH:ALTLM:CLAIMABLE_FUNDS");
+
+            countedPrincipal_ += IMapleLoanLike(loan_).principal();
             ITransitionLoanManagerLike(transitionLoanManager_).add(loan_);
+
             emit LoanAddedToTransitionLoanManager(transitionLoanManager_, loan_);
         }
+
+        require(countedPrincipal_ == expectedPrincipal_, "MH:ALTLM:INVALID_PRINCIPAL");
     }
 
     /******************************************************************************************************************************/
@@ -161,6 +169,9 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
 
         require(IMapleGlobalsLike(globalsV2).isFactory("LOAN", loanFactoryAddress_), "MH:SPL:INVALID_LOAN_FACTORY");
 
+        uint256 expectedPrincipal_ = IPoolV1Like(poolV1_).principalOut();
+        uint256 countedPrincipal_  = 0;
+
         for (uint256 i; i < loans_.length; ++i) {
             IMapleLoanLike  loan_       = IMapleLoanLike(loans_[i]);
             IDebtLockerLike debtLocker_ = IDebtLockerLike(loan_.lender());
@@ -176,8 +187,12 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
 
             require(loan_.pendingLender() == transitionLoanManager_, "MH:SPL:INVALID_PENDING_LENDER");
 
+            countedPrincipal_ += IMapleLoanLike(loan_).principal();
+
             emit PendingLenderSet(address(loan_), transitionLoanManager_);
         }
+
+        require(countedPrincipal_ == expectedPrincipal_, "MH:SPL:INVALID_PRINCIPAL");
     }
 
     /******************************************************************************************************************************/

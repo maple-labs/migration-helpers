@@ -125,10 +125,11 @@ interface IMigrationHelper {
 
     /**
      *  @dev   Add loans to the TransitionLoanManager, seeding the accounting state.
+     *  @param poolV1_                The address of the PoolV1 contract.
      *  @param transitionLoanManager_ The address of the TransitionLoanManager contract.
      *  @param loans_                 Array of loans to add to the TransitionLoanManager.
      */
-    function addLoansToLoanManager(address transitionLoanManager_, address[] calldata loans_) external;
+    function addLoansToLoanManager(address poolV1_, address transitionLoanManager_, address[] calldata loans_) external;
 
     /**
      *  @dev   Transfer initial mint of PoolV2 tokens to all PoolV1 LPs.

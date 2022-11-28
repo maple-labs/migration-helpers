@@ -68,6 +68,7 @@ contract MockLoan {
 
     uint256 public claimableFunds;
     uint256 public nextPaymentDueDate;
+    uint256 public principal;
 
     function setPendingLender(address newLender_) external {
         pendingLender = newLender_;
@@ -87,6 +88,10 @@ contract MockLoan {
 
     function __setNextPaymentDueDate(uint256 nextPaymentDueDate_) external {
         nextPaymentDueDate = nextPaymentDueDate_;
+    }
+
+    function __setPrincipal(uint256 principal_) external {
+        principal = principal_;
     }
 
 }
@@ -133,6 +138,7 @@ contract MockPoolV1 {
 
     uint256 public interestSum;
     uint256 public poolLosses;
+    uint256 public principalOut;
     uint256 public totalSupply;
 
     mapping(address => uint256) public balanceOf;
@@ -153,6 +159,10 @@ contract MockPoolV1 {
 
     function __setPoolLosses(uint256 poolLosses_) external {
         poolLosses = poolLosses_;
+    }
+
+    function __setPrincipalOut(uint256 principalOut_) external {
+        principalOut = principalOut_;
     }
 
     function __setTotalSupply(uint256 totalSupply_) external {

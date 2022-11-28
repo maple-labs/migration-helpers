@@ -148,6 +148,8 @@ interface IPoolV1Like {
 
     function poolLosses() external view returns (uint256 poolLosses_);
 
+    function principalOut() external view returns (uint256 principalOut_);
+
     function recognizableLossesOf(address account_) external view returns (uint256 recognizableLosses_);
 
     function totalSupply() external view returns (uint256 totalSupply_);
