@@ -128,8 +128,9 @@ interface IMigrationHelper {
      *  @param poolV1_                The address of the PoolV1 contract.
      *  @param transitionLoanManager_ The address of the TransitionLoanManager contract.
      *  @param loans_                 Array of loans to add to the TransitionLoanManager.
+     *  @param allowedDiff_           The allowed difference between the loan's principal and the sum of the loan's.
      */
-    function addLoansToLoanManager(address poolV1_, address transitionLoanManager_, address[] calldata loans_) external;
+    function addLoansToLoanManager(address poolV1_, address transitionLoanManager_, address[] calldata loans_, uint256 allowedDiff_) external;
 
     /**
      *  @dev   Transfer initial mint of PoolV2 tokens to all PoolV1 LPs.
@@ -147,15 +148,18 @@ interface IMigrationHelper {
      *  @param poolV2ManagerAddress_  The address of the PoolManager contract for V2.
      *  @param loanFactoryAddress_    The address of the Loan factory contract.
      *  @param loans_                 Array of loans to add to transfer ownership on.
+     *  @param allowedDiff_           The allowed difference between the loan's principal and the sum of the loan's.
      */
-    function setPendingLenders(address poolV1_, address poolV2ManagerAddress_, address loanFactoryAddress_, address[] calldata loans_) external;
+    function setPendingLenders(address poolV1_, address poolV2ManagerAddress_, address loanFactoryAddress_, address[] calldata loans_, uint256 allowedDiff_) external;
 
     /**
      *  @dev   Accept ownership of all outstanding loans to the TransitionLoanManager.
+     *  @param poolV1_                The address of the PoolV1 contract.
      *  @param transitionLoanManager_ The address of the TransitionLoanManager contract.
      *  @param loans_                 Array of loans to accept ownership on.
+     *  @param allowedDiff_           The allowed difference between the loan's principal and the sum of the loan's.
      */
-    function takeOwnershipOfLoans(address transitionLoanManager_, address[] calldata loans_) external;
+    function takeOwnershipOfLoans(address poolV1_, address transitionLoanManager_, address[] calldata loans_, uint256 allowedDiff_) external;
 
     /**
      *  @dev   Upgrade the LoanManager from the TransitionLoanManager.

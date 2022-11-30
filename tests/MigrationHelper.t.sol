@@ -101,7 +101,7 @@ contract SetPendingLendersTests is MigrationHelperTestBase {
         loans[1] = address(loan2);
 
         vm.prank(owner);
-        migrationHelper.setPendingLenders(address(poolV1), address(poolV2Manager), address(loanFactory), loans);
+        migrationHelper.setPendingLenders(address(poolV1), address(poolV2Manager), address(loanFactory), loans, 0);
     }
 
     function test_setPendingLenders_notAdmin() external {
@@ -110,7 +110,7 @@ contract SetPendingLendersTests is MigrationHelperTestBase {
         loans[1] = address(loan2);
 
         vm.expectRevert("MH:ONLY_ADMIN");
-        migrationHelper.setPendingLenders(address(poolV1), address(poolV2Manager), address(loanFactory), loans);
+        migrationHelper.setPendingLenders(address(poolV1), address(poolV2Manager), address(loanFactory), loans, 0);
 
         _callSetPendingLenders();
     }
@@ -258,7 +258,7 @@ contract SetPendingLendersTests is MigrationHelperTestBase {
         loans[1] = address(loan2);
 
         vm.startPrank(owner);
-        migrationHelper.setPendingLenders(address(poolV1), address(poolV2Manager), address(loanFactory), loans);
+        migrationHelper.setPendingLenders(address(poolV1), address(poolV2Manager), address(loanFactory), loans, 0);
         migrationHelper.rollback_setPendingLenders(loans);
     }
 
@@ -272,7 +272,7 @@ contract AddLoansToLoanManagerTests is MigrationHelperTestBase {
         loans[1] = address(loan2);
 
         vm.prank(owner);
-        migrationHelper.addLoansToLoanManager(address(poolV1), address(loanManager), loans);
+        migrationHelper.addLoansToLoanManager(address(poolV1), address(loanManager), loans, 0);
     }
 
     function test_addLoansToLoanManager_notAdmin() external {
@@ -281,7 +281,7 @@ contract AddLoansToLoanManagerTests is MigrationHelperTestBase {
         loans[1] = address(loan2);
 
         vm.expectRevert("MH:ONLY_ADMIN");
-        migrationHelper.setPendingLenders(address(poolV1), address(poolV2Manager), address(loanFactory), loans);
+        migrationHelper.setPendingLenders(address(poolV1), address(poolV2Manager), address(loanFactory), loans, 0);
 
         _callAddLoansToLoanManager();
     }
