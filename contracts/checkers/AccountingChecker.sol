@@ -18,6 +18,7 @@ contract AccountingChecker {
 
     uint256 constant HUNDRED_PERCENT = 1e6;
     uint256 constant PRECISION       = 1e30;
+    uint256 constant SCALED_ONE      = 1e18;
 
     address public globals;
 
@@ -78,6 +79,7 @@ contract AccountingChecker {
         uint256 managementFeeRate_;
 
         {
+            // NOTE: This will return the wrong values if we update the management fees on mainnet.
             uint256 delegateManagementFeeRate_ = IPoolManagerLike(poolManager_).delegateManagementFeeRate();
             uint256 platformManagementFeeRate_ = IMapleGlobalsLike(globals).platformManagementFeeRate(poolManager_);
 
@@ -92,11 +94,10 @@ contract AccountingChecker {
 
         IMapleLoanLike loan_ = IMapleLoanLike(loanAddress_);
 
-        uint256 refinanceInterest_ = loan_.refinanceInterest();
-        uint256 grossInterest_     = _getGrossInterest(loanAddress_);
+        ( uint256 grossInstallmentInterest_, uint256 grossRefinanceInterest_ ) = _getGrossInterestParams(loanAddress_);
 
-        uint256 incomingNetInterest_  = _getNetInterest(grossInterest_ - refinanceInterest_, managementFeeRate_);
-        uint256 netRefinanceInterest_ = _getNetInterest(refinanceInterest_,                  managementFeeRate_);
+        uint256 incomingNetInterest_  = _getNetInterest(grossInstallmentInterest_, managementFeeRate_);
+        uint256 netRefinanceInterest_ = _getNetInterest(grossRefinanceInterest_,   managementFeeRate_);
 
         uint256 nextPaymentDueDate_ = loan_.nextPaymentDueDate();
 
@@ -107,20 +108,48 @@ contract AccountingChecker {
         accruedInterest = netRefinanceInterest_ + incomingNetInterest_ * (endDate_ - startDate_) / (nextPaymentDueDate_ - startDate_);
     }
 
-    function _getGrossInterest(address loan_) internal view returns (uint256 grossInterest_) {
+    function _getGrossInterestParams(address loan_) internal view returns (uint256 grossInstallmentInterest_, uint256 grossRefinanceInterest_) {
         uint256 version_ = _getVersion(loan_);
 
         if (version_ == 301 || version_ == 302) {
-            ( , grossInterest_, , ) = IMapleLoanLike(loan_).getNextPaymentBreakdown();
+            ( , grossInstallmentInterest_, , ) = IMapleLoanLike(loan_).getNextPaymentBreakdown();
+            grossRefinanceInterest_ = IMapleLoanLike(loan_).refinanceInterest();
+
+            grossInstallmentInterest_ -= (_getLateInterest(loan_) + grossRefinanceInterest_);
         } else if (version_ == 400) {
-            ( , grossInterest_, ) = IMapleLoanV4Like(loan_).getNextPaymentBreakdown();
+            ( , uint256[3] memory interest_, ) = IMapleLoanV4Like(loan_).getNextPaymentDetailedBreakdown();
+            grossInstallmentInterest_ = interest_[0];
+            grossRefinanceInterest_   = interest_[2];
         } else {
             revert("AC:UNSUPPORTED_LOAN");
         }
     }
 
+    function _getLateInterest(address loan_) internal view returns (uint256 lateInterest_) {
+        uint256 principal_           = IMapleLoanLike(loan_).principal();
+        uint256 interestRate_        = IMapleLoanLike(loan_).interestRate();
+        uint256 nextPaymentDueDate_  = IMapleLoanLike(loan_).nextPaymentDueDate();
+        uint256 lateFeeRate_         = IMapleLoanLike(loan_).lateFeeRate();
+        uint256 lateInterestPremium_ = IMapleLoanLike(loan_).lateInterestPremium();
+
+        if (block.timestamp <= nextPaymentDueDate_) return 0;
+
+        uint256 fullDaysLate = (((block.timestamp - nextPaymentDueDate_ - 1) / 1 days) + 1) * 1 days;
+
+        lateInterest_ += _getInterest(principal_, interestRate_ + lateInterestPremium_, fullDaysLate);
+        lateInterest_ += (lateFeeRate_ * principal_) / SCALED_ONE;
+    }
+
+    function _getInterest(uint256 principal_, uint256 interestRate_, uint256 interval_) internal pure returns (uint256 interest_) {
+        interest_ = principal_ * _getPeriodicInterestRate(interestRate_, interval_) / SCALED_ONE;
+    }
+
     function _getNetInterest(uint256 interest_, uint256 feeRate_) internal pure returns (uint256 netInterest_) {
         netInterest_ = interest_ * (HUNDRED_PERCENT - feeRate_) / HUNDRED_PERCENT;
+    }
+
+    function _getPeriodicInterestRate(uint256 interestRate_, uint256 interval_) internal pure returns (uint256 periodicInterestRate_) {
+        periodicInterestRate_ = interestRate_ * interval_ / uint256(365 days);
     }
 
     function _getVersion(address loan_) internal view returns (uint256 version_) {

@@ -40,13 +40,25 @@ interface ILoanManagerLike {
 
     function accountedInterest() external view returns (uint256);
 
+    function domainEnd() external view returns (uint256);
+
+    function domainStart() external view returns (uint256);
+
     function getAccruedInterest() external view returns (uint256);
 
     function issuanceRate() external view returns (uint256);
 
-    function domainStart() external view returns (uint256);
+    function paymentIdOf(address loan_) external view returns (uint24 paymentId_);
 
-    function domainEnd() external view returns (uint256);
+    function payments(uint256 paymentId_) external view returns (
+        uint24  platformManagementFeeRate,
+        uint24  delegateManagementFeeRate,
+        uint48  startDate,
+        uint48  paymentDueDate,
+        uint128 incomingNetInterest,
+        uint128 refinanceInterest,
+        uint256 issuanceRate
+    );
 
 }
 
@@ -96,6 +108,10 @@ interface IMapleLoanLike is IMapleProxiedLike {
 
     function interestRate() external view returns (uint256 interestRate_);
 
+    function lateFeeRate() external view returns (uint256 lateFeeRate_);
+
+    function lateInterestPremium() external view returns (uint256 lateInterestPremium_);
+
     function lender() external view returns (address lender_);
 
     function makePayment(uint256 amount_) external returns (uint256 principal_, uint256 interest_);
@@ -117,6 +133,8 @@ interface IMapleLoanLike is IMapleProxiedLike {
 interface IMapleLoanV4Like {
 
     function getNextPaymentBreakdown() external view returns (uint256 principal_, uint256 interest_, uint256 fees_);
+
+    function getNextPaymentDetailedBreakdown() external view returns (uint256 principal_, uint256[3] memory interest_, uint256[2] memory fees_);
 
 }
 
