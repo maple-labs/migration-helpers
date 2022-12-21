@@ -675,5 +675,3 @@ contract AirdropTokensTests is TestUtils {
 
 }
 
-// TODO: test takeOwnershipOfLoans and rollback
-// TODO: test upgradeLoanManager and rollback
