@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.7;
 
-import { Address, console, TestUtils } from "../modules/contract-test-utils/contracts/test.sol";
-import { MockERC20 }                   from "../modules/erc20/contracts/test/mocks/MockERC20.sol";
-import { NonTransparentProxy }         from "../modules/non-transparent-proxy/contracts/NonTransparentProxy.sol";
+import { Address, TestUtils }  from "../modules/contract-test-utils/contracts/test.sol";
+import { MockERC20 }           from "../modules/erc20/contracts/test/mocks/MockERC20.sol";
+import { NonTransparentProxy } from "../modules/non-transparent-proxy/contracts/NonTransparentProxy.sol";
 
 import { MigrationHelper } from "../contracts/MigrationHelper.sol";
 
@@ -11,8 +11,8 @@ import {
     MockDebtLocker,
     MockGlobals,
     MockLoan,
-    MockLoanManager,
     MockLoanFactory,
+    MockLoanManager,
     MockPoolV1,
     MockPoolV2Manager,
     MockProxyFactory
@@ -20,25 +20,25 @@ import {
 
 contract MigrationHelperTestBase is TestUtils {
 
-    address migrationHelperImplementation;
+    address internal migrationHelperImplementation;
 
-    address loanImplementation = address(new Address());
-    address owner              = address(new Address());
-    address poolDelegate       = address(new Address());
+    address internal loanImplementation = address(new Address());
+    address internal owner              = address(new Address());
+    address internal poolDelegate       = address(new Address());
 
-    MockDebtLocker    debtLocker1        = new MockDebtLocker();
-    MockDebtLocker    debtLocker2        = new MockDebtLocker();
-    MockGlobals       globals            = new MockGlobals();
-    MockLoan          loan1              = new MockLoan();
-    MockLoan          loan2              = new MockLoan();
-    MockLoanManager   loanManager        = new MockLoanManager();
-    MockLoanFactory   loanFactory        = new MockLoanFactory();
-    MockPoolV1        poolV1             = new MockPoolV1();
-    MockPoolV2Manager poolV2Manager      = new MockPoolV2Manager();
-    MockProxyFactory  loanManagerFactory = new MockProxyFactory();
-    MockProxyFactory  poolManagerFactory = new MockProxyFactory();
+    MockDebtLocker    internal debtLocker1        = new MockDebtLocker();
+    MockDebtLocker    internal debtLocker2        = new MockDebtLocker();
+    MockGlobals       internal globals            = new MockGlobals();
+    MockLoan          internal loan1              = new MockLoan();
+    MockLoan          internal loan2              = new MockLoan();
+    MockLoanFactory   internal loanFactory        = new MockLoanFactory();
+    MockLoanManager   internal loanManager        = new MockLoanManager();
+    MockPoolV1        internal poolV1             = new MockPoolV1();
+    MockPoolV2Manager internal poolV2Manager      = new MockPoolV2Manager();
+    MockProxyFactory  internal loanManagerFactory = new MockProxyFactory();
+    MockProxyFactory  internal poolManagerFactory = new MockProxyFactory();
 
-    MigrationHelper migrationHelper;
+    MigrationHelper internal migrationHelper;
 
     function setUp() external {
         debtLocker1.__setLoan(address(loan1));
@@ -340,13 +340,13 @@ contract AddLoansToLoanManagerTests is MigrationHelperTestBase {
 
 contract AdminTests is TestUtils {
 
-    address migrationHelperImplementation;
+    address internal migrationHelperImplementation;
 
-    address globals      = address(new Address());
-    address owner        = address(new Address());
-    address pendingAdmin = address(new Address());
+    address internal globals      = address(new Address());
+    address internal owner        = address(new Address());
+    address internal pendingAdmin = address(new Address());
 
-    MigrationHelper migrationHelper;
+    MigrationHelper internal migrationHelper;
 
     function setUp() external {
         migrationHelperImplementation = address(new MigrationHelper());
@@ -408,18 +408,18 @@ contract AdminTests is TestUtils {
 
 contract AirdropTokensTests is TestUtils {
 
-    address migrationHelperImplementation;
+    address internal migrationHelperImplementation;
 
-    address globals      = address(new Address());
-    address owner        = address(new Address());
-    address poolDelegate = address(new Address());
+    address internal globals      = address(new Address());
+    address internal owner        = address(new Address());
+    address internal poolDelegate = address(new Address());
 
-    MigrationHelper migrationHelper;
+    MigrationHelper internal migrationHelper;
 
-    MockERC20         liquidityAsset;
-    MockERC20         poolV2;
-    MockPoolV1        poolV1;
-    MockPoolV2Manager poolManager;
+    MockERC20         internal liquidityAsset;
+    MockERC20         internal poolV2;
+    MockPoolV1        internal poolV1;
+    MockPoolV2Manager internal poolManager;
 
     function setUp() external {
         migrationHelperImplementation = address(new MigrationHelper());

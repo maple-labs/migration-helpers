@@ -3,9 +3,9 @@ pragma solidity 0.8.7;
 
 interface IMigrationHelper {
 
-    /******************************************************************************************************************************/
-    /*** Events                                                                                                                 ***/
-    /******************************************************************************************************************************/
+    /**************************************************************************************************************************************/
+    /*** Events                                                                                                                         ***/
+    /**************************************************************************************************************************************/
 
     /**
      *  @dev   Set the pending admin of the contract.
@@ -76,9 +76,9 @@ interface IMigrationHelper {
      */
     event RolledBackTakeOwnershipOfLoans(address[] loans_, address[] debtLockers_);
 
-    /******************************************************************************************************************************/
-    /*** State Variables                                                                                                        ***/
-    /******************************************************************************************************************************/
+    /**************************************************************************************************************************************/
+    /*** State Variables                                                                                                                ***/
+    /**************************************************************************************************************************************/
 
     /**
      *  @dev The address of globals.
@@ -97,9 +97,9 @@ interface IMigrationHelper {
      */
     function previousLenderOf(address loan_) external view returns (address previousLender_);
 
-    /******************************************************************************************************************************/
-    /*** Admin Functions                                                                                                        ***/
-    /******************************************************************************************************************************/
+    /**************************************************************************************************************************************/
+    /*** Admin Functions                                                                                                                ***/
+    /**************************************************************************************************************************************/
 
     /**
      *  @dev Accept ownership.
@@ -119,9 +119,9 @@ interface IMigrationHelper {
      */
     function setGlobals(address globalsV2_) external;
 
-    /******************************************************************************************************************************/
-    /*** Migration Functions                                                                                                    ***/
-    /******************************************************************************************************************************/
+    /**************************************************************************************************************************************/
+    /*** Migration Functions                                                                                                            ***/
+    /**************************************************************************************************************************************/
 
     /**
      *  @dev   Add loans to the TransitionLoanManager, seeding the accounting state.
@@ -130,7 +130,12 @@ interface IMigrationHelper {
      *  @param loans_                 Array of loans to add to the TransitionLoanManager.
      *  @param allowedDiff_           The allowed difference between the loan's principal and the sum of the loan's.
      */
-    function addLoansToLoanManager(address poolV1_, address transitionLoanManager_, address[] calldata loans_, uint256 allowedDiff_) external;
+    function addLoansToLoanManager(
+        address poolV1_,
+        address transitionLoanManager_,
+        address[] calldata loans_,
+        uint256 allowedDiff_
+    ) external;
 
     /**
      *  @dev   Transfer initial mint of PoolV2 tokens to all PoolV1 LPs.
@@ -140,7 +145,13 @@ interface IMigrationHelper {
      *  @param lpsV2_         The address of the pool delegate to transfer ownership to.
      *  @param allowedDiff_   The allowed difference between the sum of PoolV2 tokens that were transferred to each LP and the expected value of PoolV1.
      */
-    function airdropTokens(address poolV1Address_, address poolManager_, address[] calldata lpsV1_, address[] calldata lpsV2_, uint256 allowedDiff_) external;
+    function airdropTokens(
+        address poolV1Address_,
+        address poolManager_,
+        address[] calldata lpsV1_,
+        address[] calldata lpsV2_,
+        uint256 allowedDiff_
+    ) external;
 
     /**
      *  @dev   Set pending lender of all outstanding loans to the TransitionLoanManager.
@@ -150,7 +161,13 @@ interface IMigrationHelper {
      *  @param loans_                 Array of loans to add to transfer ownership on.
      *  @param allowedDiff_           The allowed difference between the loan's principal and the sum of the loan's.
      */
-    function setPendingLenders(address poolV1_, address poolV2ManagerAddress_, address loanFactoryAddress_, address[] calldata loans_, uint256 allowedDiff_) external;
+    function setPendingLenders(
+        address poolV1_,
+        address poolV2ManagerAddress_,
+        address loanFactoryAddress_,
+        address[] calldata loans_,
+        uint256 allowedDiff_
+    ) external;
 
     /**
      *  @dev   Accept ownership of all outstanding loans to the TransitionLoanManager.
@@ -159,7 +176,12 @@ interface IMigrationHelper {
      *  @param loans_                 Array of loans to accept ownership on.
      *  @param allowedDiff_           The allowed difference between the loan's principal and the sum of the loan's.
      */
-    function takeOwnershipOfLoans(address poolV1_, address transitionLoanManager_, address[] calldata loans_, uint256 allowedDiff_) external;
+    function takeOwnershipOfLoans(
+        address poolV1_,
+        address transitionLoanManager_,
+        address[] calldata loans_,
+        uint256 allowedDiff_
+    ) external;
 
     /**
      *  @dev   Upgrade the LoanManager from the TransitionLoanManager.
@@ -168,9 +190,9 @@ interface IMigrationHelper {
      */
     function upgradeLoanManager(address transitionLoanManager_, uint256 version_) external;
 
-    /******************************************************************************************************************************/
-    /*** Contingency Functions                                                                                                  ***/
-    /******************************************************************************************************************************/
+    /**************************************************************************************************************************************/
+    /*** Contingency Functions                                                                                                          ***/
+    /**************************************************************************************************************************************/
 
     /**
      *  @dev   Function to revert the step to set all the pending lenders, setting all to zero.

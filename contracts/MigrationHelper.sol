@@ -26,18 +26,18 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
 
     mapping(address => address) public override previousLenderOf;
 
-    /******************************************************************************************************************************/
-    /*** Modifiers                                                                                                              ***/
-    /******************************************************************************************************************************/
+    /**************************************************************************************************************************************/
+    /*** Modifiers                                                                                                                      ***/
+    /**************************************************************************************************************************************/
 
     modifier onlyAdmin() {
         require(msg.sender == admin(), "MH:ONLY_ADMIN");
         _;
     }
 
-    /******************************************************************************************************************************/
-    /*** Admin Functions                                                                                                        ***/
-    /******************************************************************************************************************************/
+    /**************************************************************************************************************************************/
+    /*** Admin Functions                                                                                                                ***/
+    /**************************************************************************************************************************************/
 
     function setPendingAdmin(address pendingAdmin_) external override onlyAdmin {
         emit PendingAdminSet(pendingAdmin = pendingAdmin_);
@@ -57,9 +57,9 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
         emit GlobalsSet(globalsV2 = globalsV2_);
     }
 
-    /******************************************************************************************************************************/
-    /*** Step 1: Add Loans to TransitionLoanManager accounting (No contingency needed) [Phase 7]                                ***/
-    /******************************************************************************************************************************/
+    /**************************************************************************************************************************************/
+    /*** Step 1: Add Loans to TransitionLoanManager accounting (No contingency needed) [Phase 7]                                        ***/
+    /**************************************************************************************************************************************/
 
     function addLoansToLoanManager(
         address poolV1_,
@@ -93,23 +93,34 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
             emit LoanAddedToTransitionLoanManager(transitionLoanManager_, loan_);
         }
 
-        uint256 absError_ = expectedPrincipal_ > countedPrincipal_ ? expectedPrincipal_ - countedPrincipal_ : countedPrincipal_ - expectedPrincipal_;
+        uint256 absError_ = expectedPrincipal_ > countedPrincipal_
+            ? expectedPrincipal_ - countedPrincipal_
+            : countedPrincipal_ - expectedPrincipal_;
 
         require(absError_ <= allowedDiff_, "MH:ALTLM:INVALID_PRINCIPAL");
     }
 
-    /******************************************************************************************************************************/
-    /*** Step 2: Airdrop tokens to all new LPs (No contingency needed) [Phase 10]                                               ***/
-    /******************************************************************************************************************************/
+    /**************************************************************************************************************************************/
+    /*** Step 2: Airdrop tokens to all new LPs (No contingency needed) [Phase 10]                                                       ***/
+    /**************************************************************************************************************************************/
 
-    function airdropTokens(address poolV1Address_, address poolManager_, address[] calldata lpsV1_, address[] calldata lpsV2_, uint256 allowedDiff_) external override onlyAdmin {
+    function airdropTokens(
+        address poolV1Address_,
+        address poolManager_,
+        address[] calldata lpsV1_,
+        address[] calldata lpsV2_,
+        uint256 allowedDiff_
+    )
+        external override onlyAdmin
+    {
         IPoolV1Like poolV1_ = IPoolV1Like(poolV1Address_);
 
         uint256 decimalConversionFactor_ = 10 ** IERC20Like(poolV1_.liquidityAsset()).decimals();
         uint256 totalLosses_             = poolV1_.poolLosses();
         address poolV2_                  = IPoolManagerLike(poolManager_).pool();
 
-        uint256 totalPoolV1Value_ = ((poolV1_.totalSupply() * decimalConversionFactor_) / 1e18) + poolV1_.interestSum() - poolV1_.poolLosses();  // Add interfaces
+        uint256 totalPoolV1Value_ =
+            ((poolV1_.totalSupply() * decimalConversionFactor_) / 1e18) + poolV1_.interestSum() - poolV1_.poolLosses();
 
         uint256 totalValueTransferred_;
 
@@ -119,7 +130,8 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
 
             uint256 lpLosses_ = totalLosses_ > 0 ? poolV1_.recognizableLossesOf(lpV1_) : 0;
 
-            uint256 poolV2LPBalance_ = poolV1_.balanceOf(lpV1_) * decimalConversionFactor_ / 1e18 + poolV1_.withdrawableFundsOf(lpV1_) - lpLosses_;
+            uint256 poolV2LPBalance_ =
+                poolV1_.balanceOf(lpV1_) * decimalConversionFactor_ / 1e18 + poolV1_.withdrawableFundsOf(lpV1_) - lpLosses_;
 
             totalValueTransferred_ += poolV2LPBalance_;
 
@@ -128,7 +140,10 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
             emit TokensAirdropped(address(poolV1_), poolV2_, lpV1_, lpV2_, poolV2LPBalance_);
         }
 
-        uint256 absError_ = totalPoolV1Value_ > totalValueTransferred_ ? totalPoolV1Value_ - totalValueTransferred_ : totalValueTransferred_ - totalPoolV1Value_;
+        uint256 absError_ = totalPoolV1Value_ > totalValueTransferred_
+            ? totalPoolV1Value_ - totalValueTransferred_
+            : totalValueTransferred_ - totalPoolV1Value_;
+
         require(absError_ <= allowedDiff_, "MH:AT:VALUE_MISMATCH");
 
         uint256 dust_ = IERC20Like(address(poolV2_)).balanceOf(address(this));
@@ -136,9 +151,9 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
         require(dust_ == 0 || ERC20Helper.transfer(poolV2_, lpsV2_[0], dust_), "MH:AT:PD_TRANSFER_FAILED");
     }
 
-    /******************************************************************************************************************************/
-    /*** Step 3: Set pending lender ownership for all loans to new LoanManager (Contingency needed) [Phase 12-13]               ***/
-    /******************************************************************************************************************************/
+    /**************************************************************************************************************************************/
+    /*** Step 3: Set pending lender ownership for all loans to new LoanManager (Contingency needed) [Phase 12-13]                       ***/
+    /**************************************************************************************************************************************/
 
     function setPendingLenders(
         address poolV1_,
@@ -209,14 +224,16 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
             emit PendingLenderSet(address(loan_), transitionLoanManager_);
         }
 
-        uint256 absError_ = expectedPrincipal_ > countedPrincipal_ ? expectedPrincipal_ - countedPrincipal_ : countedPrincipal_ - expectedPrincipal_;
+        uint256 absError_ = expectedPrincipal_ > countedPrincipal_
+            ? expectedPrincipal_ - countedPrincipal_
+            : countedPrincipal_ - expectedPrincipal_;
 
         require(absError_ <= allowedDiff_, "MH:SPL:INVALID_PRINCIPAL");
     }
 
-    /******************************************************************************************************************************/
-    /*** Step 4: Take ownership of all loans (Contingency needed) [Phase 14-15]                                                 ***/
-    /******************************************************************************************************************************/
+    /**************************************************************************************************************************************/
+    /*** Step 4: Take ownership of all loans (Contingency needed) [Phase 14-15]                                                         ***/
+    /**************************************************************************************************************************************/
 
     function takeOwnershipOfLoans(
         address poolV1_,
@@ -248,7 +265,9 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
             previousLenderOf[loan_] = IMapleLoanLike(loan_).lender();
         }
 
-        uint256 absError_ = expectedPrincipal_ > countedPrincipal_ ? expectedPrincipal_ - countedPrincipal_ : countedPrincipal_ - expectedPrincipal_;
+        uint256 absError_ = expectedPrincipal_ > countedPrincipal_
+            ? expectedPrincipal_ - countedPrincipal_
+            : countedPrincipal_ - expectedPrincipal_;
 
         require(absError_ <= allowedDiff_, "MH:TOOL:INVALID_PRINCIPAL");
 
@@ -261,9 +280,9 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
         }
     }
 
-    /******************************************************************************************************************************/
-    /*** Step 5: Upgrade Loan Manager (Contingency needed) [Phase 16]                                                           ***/
-    /******************************************************************************************************************************/
+    /**************************************************************************************************************************************/
+    /*** Step 5: Upgrade Loan Manager (Contingency needed) [Phase 16]                                                                   ***/
+    /**************************************************************************************************************************************/
 
     function upgradeLoanManager(address transitionLoanManager_, uint256 version_) public override onlyAdmin {
         IMapleGlobalsLike globalsV2_ = IMapleGlobalsLike(globalsV2);
@@ -281,9 +300,9 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
         emit LoanManagerUpgraded(transitionLoanManager_, version_);
     }
 
-    /******************************************************************************************************************************/
-    /*** Contingency Functions                                                                                                  ***/
-    /******************************************************************************************************************************/
+    /**************************************************************************************************************************************/
+    /*** Contingency Functions                                                                                                          ***/
+    /**************************************************************************************************************************************/
 
     // Rollback Step 3 [Phase 12-13]
     function rollback_setPendingLenders(address[] calldata loans_) external override onlyAdmin {
@@ -315,9 +334,9 @@ contract MigrationHelper is IMigrationHelper, NonTransparentProxied {
         emit RolledBackTakeOwnershipOfLoans(loans_, debtLockers_);
     }
 
-    /******************************************************************************************************************************/
-    /*** Helper Functions                                                                                                       ***/
-    /******************************************************************************************************************************/
+    /**************************************************************************************************************************************/
+    /*** Helper Functions                                                                                                               ***/
+    /**************************************************************************************************************************************/
 
     function _setAddress(bytes32 slot_, address value_) private {
         assembly {

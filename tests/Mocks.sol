@@ -33,13 +33,13 @@ contract MockGlobals {
 
     mapping(bytes32 => mapping(address => bool)) public isFactory;
 
-    function setPendingLender(address newLender_) external {
-        pendingLender = newLender_;
-    }
-
     function poolDelegates(address poolDelegate_) external view returns (address ownedPoolManager_, bool isPoolDelegate_) {
         ownedPoolManager_ = ownedPoolManager[poolDelegate_];
         isPoolDelegate_   = isPoolDelegate[poolDelegate_];
+    }
+
+    function setPendingLender(address newLender_) external {
+        pendingLender = newLender_;
     }
 
     function __setIsPoolDelegate(address poolDelegate_, bool isValid_) external {
@@ -181,8 +181,8 @@ contract MockPoolV1 {
 
 contract MockPoolV2Manager {
 
-    address public pool;
     address public factory;
+    address public pool;
     address public poolDelegate;
 
     bool public active;
@@ -197,20 +197,20 @@ contract MockPoolV2Manager {
         factory = factory_;
     }
 
-    function __setPool(address pool_) external {
-        pool = pool_;
-    }
-
-    function __setPoolDelegate(address poolDelegate_) external {
-        poolDelegate = poolDelegate_;
-    }
-
     function __setLoanManager(address loanManager_) external {
         loanManagerList.push(loanManager_);
     }
 
     function __setLoanManagerAtIndex(uint256 index, address loanManager_) external {
         loanManagerList[index] = loanManager_;
+    }
+
+    function __setPool(address pool_) external {
+        pool = pool_;
+    }
+
+    function __setPoolDelegate(address poolDelegate_) external {
+        poolDelegate = poolDelegate_;
     }
 }
 
@@ -223,5 +223,3 @@ contract MockProxyFactory {
     }
 
 }
-
-

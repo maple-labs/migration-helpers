@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.7;
 
-import { console } from "../../modules/contract-test-utils/contracts/log.sol";
-
 import {
     IERC20Like,
     ILoanManagerLike,
     IMapleGlobalsLike,
     IMapleLoanLike,
-    ILoanManagerLike,
     IMapleLoanV4Like,
     IMapleProxyFactoryLike,
     IPoolManagerLike
@@ -16,9 +13,9 @@ import {
 
 contract AccountingChecker {
 
-    uint256 constant HUNDRED_PERCENT = 1e6;
-    uint256 constant PRECISION       = 1e30;
-    uint256 constant SCALED_ONE      = 1e18;
+    uint256 public constant HUNDRED_PERCENT = 1e6;
+    uint256 public constant PRECISION       = 1e30;
+    uint256 public constant SCALED_ONE      = 1e18;
 
     address public globals;
 
@@ -57,7 +54,11 @@ contract AccountingChecker {
         actualDomainEnd_ = ILoanManagerLike(IPoolManagerLike(poolManager_).loanManagerList(0)).domainEnd();
 
         for (uint256 i = 0; i < loans_.length; i++) {
-            ( uint256 principal_, uint256 accruedInterest_ ) = _checkAssetsUnderManagement(poolManager_, loans_[i], loansAddedTimestamp_, expectedDomainEnd_);
+            (
+                uint256 principal_,
+                uint256 accruedInterest_
+            ) = _checkAssetsUnderManagement(poolManager_, loans_[i], loansAddedTimestamp_, expectedDomainEnd_);
+
             totalPrincipal_ += principal_;
             totalInterest_  += accruedInterest_;
         }
@@ -108,7 +109,9 @@ contract AccountingChecker {
         accruedInterest = netRefinanceInterest_ + incomingNetInterest_ * (endDate_ - startDate_) / (nextPaymentDueDate_ - startDate_);
     }
 
-    function _getGrossInterestParams(address loan_) internal view returns (uint256 grossInstallmentInterest_, uint256 grossRefinanceInterest_) {
+    function _getGrossInterestParams(address loan_)
+        internal view returns (uint256 grossInstallmentInterest_, uint256 grossRefinanceInterest_)
+    {
         uint256 version_ = _getVersion(loan_);
 
         if (version_ == 301 || version_ == 302) {
