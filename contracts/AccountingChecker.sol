@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.7;
 
+import { IAccountingChecker } from "./interfaces/IAccountingChecker.sol";
+
 import {
     IERC20Like,
     ILoanManagerLike,
@@ -9,15 +11,15 @@ import {
     IMapleLoanV4Like,
     IMapleProxyFactoryLike,
     IPoolManagerLike
-} from "../interfaces/Interfaces.sol";
+} from "./interfaces/Interfaces.sol";
 
-contract AccountingChecker {
+contract AccountingChecker is IAccountingChecker {
 
-    uint256 public constant HUNDRED_PERCENT = 1e6;
-    uint256 public constant PRECISION       = 1e30;
-    uint256 public constant SCALED_ONE      = 1e18;
+    uint256 public constant override HUNDRED_PERCENT = 1e6;
+    uint256 public constant override PRECISION       = 1e30;
+    uint256 public constant override SCALED_ONE      = 1e18;
 
-    address public globals;
+    address public override globals;
 
     constructor (address globals_) {
         globals = globals_;
@@ -29,7 +31,8 @@ contract AccountingChecker {
         uint256 loansAddedTimestamp_,
         uint256 lastUpdatedTimestamp_
     )
-        external view returns (
+        external view override
+        returns (
             uint256 expectedTotalAssets_,
             uint256 actualTotalAssets_,
             uint256 expectedDomainEnd_,
