@@ -1,9 +1,9 @@
 # Pool V2 Migration Helpers
 
-![Foundry CI](https://github.com/maple-labs/migration-helpers-private/actions/workflows/forge.yaml/badge.svg)
+![Foundry CI](https://github.com/maple-labs/migration-helpers/actions/workflows/forge.yaml/badge.svg)
 [![GitBook - Documentation](https://img.shields.io/badge/GitBook-Documentation-orange?logo=gitbook&logoColor=white)](https://maplefinance.gitbook.io/maple/maple-for-developers/protocol-overview)
 [![Foundry][foundry-badge]][foundry]
-[![License: BUSL 1.1](https://img.shields.io/badge/License-BUSL%201.1-blue.svg)](https://github.com/maple-labs/migration-helpers-private/blob/main/LICENSE)
+[![License: BUSL 1.1](https://img.shields.io/badge/License-BUSL%201.1-blue.svg)](https://github.com/maple-labs/migration-helpers/blob/main/LICENSE)
 
 [foundry]: https://getfoundry.sh/
 [foundry-badge]: https://img.shields.io/badge/Built%20with-Foundry-FFDB1C.svg
@@ -31,8 +31,8 @@ Versions of dependencies can be checked with `git submodule status`.
 This project was built using [Foundry](https://book.getfoundry.sh/). Refer to installation instructions [here](https://github.com/foundry-rs/foundry#installation).
 
 ```sh
-git clone git@github.com:maple-labs/migration-helpers-private.git
-cd migration-helpers-private
+git clone git@github.com:maple-labs/migration-helpers.git
+cd migration-helpers
 forge install
 ```
 
